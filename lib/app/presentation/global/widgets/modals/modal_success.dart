@@ -1,0 +1,108 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:gw_sms/app/presentation/global/theme/padding.dart';
+import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
+import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
+import 'package:lottie/lottie.dart';
+
+class ModalSuccess extends StatelessWidget {
+  final String messsage;
+
+  const ModalSuccess({
+    super.key,
+    required this.messsage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = Responsive.of(context);
+    return Container(
+      padding: const EdgeInsets.all(appPadding),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            SvgPicture.asset(
+              '${assetImgIcon}check.svg',
+              color: Theme.of(context).primaryColor,
+              width: responsive.heightPercent(6),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Text(
+              // "An messsage occurred: $messsage.",
+              messsage,
+              style: TextStyle(
+                fontSize: responsive.heightPercent(1.3),
+                color: Theme.of(context).textTheme.bodyLarge!.color,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(
+              height: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ModalSuccessAnimation extends StatelessWidget {
+  final String messsage;
+  final String lottie;
+
+  const ModalSuccessAnimation({
+    super.key,
+    required this.messsage,
+    required this.lottie,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final responsive = Responsive.of(context);
+    return Container(
+      padding: const EdgeInsets.all(appPadding),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(10),
+          topRight: Radius.circular(10),
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Lottie.asset(
+              '$assetImgIllustration$lottie',
+              height: responsive.heightPercent(15),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Text(
+              // "An messsage occurred: $messsage.",
+              messsage,
+              style: TextStyle(
+                fontSize: responsive.heightPercent(1.3),
+                color: Theme.of(context).textTheme.bodyLarge!.color,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(
+              height: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
