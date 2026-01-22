@@ -442,6 +442,37 @@ Future<String> getDeviceInfoAgent() async {
   }
 }
 
+Future<String> getDeviceInfo() async {
+  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
+  if (Platform.isAndroid) {
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+
+    // Construir el User-Agent para Android (ejemplo: Xiaomi)
+    String androidVersion =
+        androidInfo.version.release; // Android OS (ej: "13")
+    String deviceModel = androidInfo.model; // Modelo (ej: "Redmi Note 12")
+    String webkitVersion = '537.36'; // Versión común de WebKit
+
+    String userAgent =
+        'Mozilla/5.0 (Linux; Android $androidVersion; $deviceModel) '
+        'AppleWebKit/$webkitVersion (KHTML, like Gecko) ';
+    return deviceModel;
+    //log('User-Agent generado: $userAgent');
+  } else if (Platform.isIOS) {
+    IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+
+    // Construir el User-Agent para iOS (opcional)
+    String userAgent =
+        "Mozilla/5.0 (${iosInfo.modelName}; CPU ${iosInfo.model} OS ${iosInfo.systemVersion.replaceAll(".", "_")} like Mac OS X)";
+
+    return iosInfo.modelName;
+  } else {
+    //log('Unsupported platform');
+    return 'Mozilla/5.0 (Unknown)';
+  }
+}
+
 Future<String> getIpAddress() async {
   try {
     final ipAddress = IpAddress(type: RequestType.json);

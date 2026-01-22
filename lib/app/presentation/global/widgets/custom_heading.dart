@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class CustomHeading extends StatelessWidget {
   const CustomHeading({
-    super.key,
     required this.title,
-    this.title2 = "",
-    this.subTitle = "",
     required this.color,
+    super.key,
+    this.title2 = '',
+    this.subTitle = '',
     this.color2,
     this.centro = false,
     this.fonsizeTitle = 20.0,
@@ -29,8 +29,9 @@ class CustomHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          (centro) ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: centro
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       children: [
         Text(
           title,
@@ -41,18 +42,19 @@ class CustomHeading extends StatelessWidget {
           ),
           textAlign: centro ? TextAlign.center : TextAlign.left,
         ),
-        subTitle == "" ? Container() : const SizedBox(height: 0.0),
-        subTitle == ""
-            ? Container()
-            : Text(
-                subTitle,
-                style: TextStyle(
-                  color: color2 ?? color,
-                  fontSize: fonsizesubTitle,
-                  fontWeight: fontWeightSubtitle,
-                ),
-                textAlign: centro ? TextAlign.center : TextAlign.left,
-              ),
+        if (subTitle == '') Container() else const SizedBox(height: 0),
+        if (subTitle == '')
+          Container()
+        else
+          Text(
+            subTitle,
+            style: TextStyle(
+              color: color2 ?? color,
+              fontSize: fonsizesubTitle,
+              fontWeight: fontWeightSubtitle,
+            ),
+            textAlign: centro ? TextAlign.center : TextAlign.left,
+          ),
       ],
     );
   }
@@ -60,10 +62,10 @@ class CustomHeading extends StatelessWidget {
 
 class CustomHeading2 extends StatelessWidget {
   const CustomHeading2({
-    super.key,
     required this.title,
     required this.title2,
     required this.color,
+    super.key,
     this.color2 = const Color(0xFF2EA5FF),
     this.align = 1,
     this.fonsizeTitle = 18.0,
@@ -84,8 +86,8 @@ class CustomHeading2 extends StatelessWidget {
       crossAxisAlignment: (align == 0)
           ? CrossAxisAlignment.center
           : align == 1
-              ? CrossAxisAlignment.start
-              : CrossAxisAlignment.end,
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
         Text(
           title,
@@ -98,11 +100,11 @@ class CustomHeading2 extends StatelessWidget {
           textAlign: align == 0
               ? TextAlign.center
               : align == 1
-                  ? TextAlign.left
-                  : TextAlign.end,
+              ? TextAlign.left
+              : TextAlign.end,
         ),
-        SizedBox(
-          height: 8,
+        const SizedBox(
+          height: 5,
         ),
         Text(
           title2,
@@ -115,8 +117,8 @@ class CustomHeading2 extends StatelessWidget {
           textAlign: align == 0
               ? TextAlign.center
               : align == 1
-                  ? TextAlign.left
-                  : TextAlign.end,
+              ? TextAlign.left
+              : TextAlign.end,
         ),
       ],
     );
@@ -125,11 +127,11 @@ class CustomHeading2 extends StatelessWidget {
 
 class CustomHeading3 extends StatelessWidget {
   const CustomHeading3({
-    super.key,
     required this.title,
-    this.title2 = "",
-    this.subTitle = "",
     required this.color,
+    super.key,
+    this.title2 = '',
+    this.subTitle = '',
     this.color2,
     this.centro = false,
     this.fonsizeTitle = 20.0,
@@ -137,7 +139,7 @@ class CustomHeading3 extends StatelessWidget {
     this.fonsizesubTitle = 14.0,
     this.fontWeight = FontWeight.w600,
     this.fontWeightSubtitle = FontWeight.w400,
-    this.title3 = "",
+    this.title3 = '',
   });
 
   final String title;
@@ -156,8 +158,9 @@ class CustomHeading3 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment:
-          (centro) ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: centro
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       children: [
         Text(
           title,
@@ -177,18 +180,19 @@ class CustomHeading3 extends StatelessWidget {
           ),
           textAlign: centro ? TextAlign.end : TextAlign.left,
         ),
-        subTitle == "" ? Container() : const SizedBox(height: 0.0),
-        subTitle == ""
-            ? Container()
-            : Text(
-                subTitle,
-                style: TextStyle(
-                  color: color2 ?? color,
-                  fontSize: fonsizesubTitle,
-                  fontWeight: fontWeightSubtitle,
-                ),
-                textAlign: centro ? TextAlign.center : TextAlign.left,
-              ),
+        if (subTitle == '') Container() else const SizedBox(height: 0),
+        if (subTitle == '')
+          Container()
+        else
+          Text(
+            subTitle,
+            style: TextStyle(
+              color: color2 ?? color,
+              fontSize: fonsizesubTitle,
+              fontWeight: fontWeightSubtitle,
+            ),
+            textAlign: centro ? TextAlign.center : TextAlign.left,
+          ),
       ],
     );
   }

@@ -1,5 +1,6 @@
 const String assetImg = 'assets/images/';
 const String assetImgIcon = 'assets/images/icons/';
+const String assetImgUssd = 'assets/images/ussd/';
 const String assetImgIllustration = 'assets/images/illustrations/';
 const String assetImgGifs = 'assets/images/gifs/';
 const String assetMap = 'assets/map_style/';

@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:gw_sms/app/presentation/global/controllers/theme_controller.dart';
+import 'package:gw_sms/app/presentation/global/theme/colors.dart';
 import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/colors.dart';
-
 class CustomButtonBox extends StatelessWidget {
   const CustomButtonBox({
-    super.key,
     required this.title,
+    super.key,
   });
 
   final String title;
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
     return Container(
       width: size.width,
-      height: 45.0,
+      height: 45,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         // color: primary.withOpacity(0.7),
@@ -29,8 +28,7 @@ class CustomButtonBox extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: primary.withOpacity(0.8),
-            spreadRadius: 0.0,
-            blurRadius: 6.0,
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -38,7 +36,7 @@ class CustomButtonBox extends StatelessWidget {
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 16.0,
+          fontSize: 16,
           fontWeight: FontWeight.w700,
           color: textWhite,
         ),
@@ -49,8 +47,8 @@ class CustomButtonBox extends StatelessWidget {
 
 class CustomButtonBoxDelete extends StatelessWidget {
   const CustomButtonBoxDelete({
-    super.key,
     required this.title,
+    super.key,
     this.typeCancel = true,
   });
 
@@ -59,32 +57,32 @@ class CustomButtonBoxDelete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
     return Container(
       width: size.width * .3,
-      height: 40.0,
+      height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: typeCancel ? textWhite : deleteColor.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(10.0),
+        borderRadius: BorderRadius.circular(10),
         border: typeCancel
-            ? Border.all(color: deleteColor.withOpacity(.7), width: 1)
+            ? Border.all(color: deleteColor.withOpacity(.7))
             : null,
         boxShadow: [
-          typeCancel
-              ? const BoxShadow()
-              : BoxShadow(
-                  color: deleteColor.withOpacity(0.5),
-                  spreadRadius: 0.0,
-                  blurRadius: 6.0,
-                  offset: const Offset(0, 2),
-                ),
+          if (typeCancel)
+            const BoxShadow()
+          else
+            BoxShadow(
+              color: deleteColor.withOpacity(0.5),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
         ],
       ),
       child: Text(
         title,
         style: TextStyle(
-          fontSize: 16.0,
+          fontSize: 16,
           fontWeight: FontWeight.w700,
           color: typeCancel ? deleteColor : textWhite,
         ),
@@ -95,14 +93,14 @@ class CustomButtonBoxDelete extends StatelessWidget {
 
 class CustomButtonBoxCrud extends StatelessWidget {
   const CustomButtonBoxCrud({
-    super.key,
     required this.title,
+    super.key,
     this.color = textWhite,
     this.typeCancel = true,
     this.titleColor = textWhite,
     this.option = false,
     this.sizeWidth = 0,
-    this.icon = "eye.svg",
+    this.icon = 'eye.svg',
     this.iconActive = false,
   });
 
@@ -117,49 +115,51 @@ class CustomButtonBoxCrud extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;
     return Container(
       width: sizeWidth == 0 ? size.width * .4 : sizeWidth,
-      height: 40.0,
+      height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: typeCancel ? textWhite : color.withOpacity(1),
-        borderRadius: BorderRadius.circular(10.0),
+        borderRadius: BorderRadius.circular(10),
         border: typeCancel
-            ? Border.all(color: deleteColor.withOpacity(.7), width: 1)
+            ? Border.all(color: deleteColor.withOpacity(.7))
             : option
-            ? Border.all(color: titleColor.withOpacity(.7), width: 1)
+            ? Border.all(color: titleColor.withOpacity(.7))
             : null,
         boxShadow: [
-          typeCancel
-              ? const BoxShadow()
-              : BoxShadow(
-                  color: color.withOpacity(0.5),
-                  spreadRadius: 0.0,
-                  blurRadius: 6.0,
-                  offset: const Offset(0, 2),
-                ),
+          if (typeCancel)
+            const BoxShadow()
+          else
+            BoxShadow(
+              color: color.withOpacity(0.5),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
         ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          iconActive == false
-              ? Container()
-              : SvgPicture.asset(
-                  '$assetImgIcon$icon',
-                  color: textWhite,
-                  width: 18.0,
-                ),
-          iconActive == false
-              ? Container()
-              : const SizedBox(
-                  width: 10,
-                ),
+          if (!iconActive)
+            Container()
+          else
+            SvgPicture.asset(
+              '$assetImgIcon$icon',
+              color: textWhite,
+              width: 18,
+            ),
+          if (!iconActive)
+            Container()
+          else
+            const SizedBox(
+              width: 10,
+            ),
           Text(
             title,
             style: TextStyle(
-              fontSize: 16.0,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
               color: typeCancel ? deleteColor : titleColor,
             ),
@@ -172,15 +172,15 @@ class CustomButtonBoxCrud extends StatelessWidget {
 
 class CustomButtonBoxStyle extends StatelessWidget {
   const CustomButtonBoxStyle({
-    super.key,
     required this.title,
+    super.key,
     this.color = primary,
     this.typeCancel = true,
     this.titleColor = textWhite,
     this.option = false,
     this.sizeWidth = 0,
     this.sizeHeight = 40,
-    this.icon = "eye.svg",
+    this.icon = 'eye.svg',
     this.iconColor = textWhite,
     this.iconActive = false,
     this.funcion,
@@ -219,84 +219,90 @@ class CustomButtonBoxStyle extends StatelessWidget {
   Widget build(BuildContext context) {
     final responsive = Responsive.of(context);
     final ThemeController themeController = context.watch();
-    bool darkMode = themeController.darkMode;
-    return InkWell(
-      onTap: funcion,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        width: sizeWidth == 0 ? responsive.width * .4 : sizeWidth,
-        height: sizeHeight,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: cancel ? Theme.of(context).cardColor : color,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            width: cancel
-                ? 1
-                : isBorder
-                ? 1
-                : 0,
-            color: cancel
-                ? deleteColor
-                : isBorder
-                ? colorBorder
-                : color,
-          ),
-          boxShadow: isShadow
-              ? null
-              : isShadowCustom
-              ? [
-                  BoxShadow(
-                    color: darkMode
-                        ? Theme.of(context).primaryColor.withOpacity(0.15)
-                        : Theme.of(context).primaryColor.withOpacity(0.25),
-                    blurRadius: 15.0,
-                    offset: const Offset(0, 7),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: cancel
-                        ? deleteColor.withOpacity(0.1)
-                        : color.withOpacity(0.5),
-                    spreadRadius: 0.0,
-                    blurRadius: 6.0,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+    final bool darkMode = themeController.darkMode;
+    return Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: cancel ? Theme.of(context).cardColor : color,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          width: cancel
+              ? 1
+              : isBorder
+              ? 1
+              : 0,
+          color: cancel
+              ? deleteColor
+              : isBorder
+              ? colorBorder
+              : color,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            iconActive == false
-                ? Container()
-                : isLoading
-                ? CircularProgressIndicator(
-                    color: titleColor,
-                    strokeWidth: 2.0,
-                    strokeAlign: -7,
-                  ) // Muestra el loader
-                : SvgPicture.asset(
-                    '$assetImgIcon$icon',
-                    color: cancel ? deleteColor : titleColor,
-                    width: fontSize == null
-                        ? responsive.heightPercent(2)
-                        : fontSize! + 2,
-                  ),
-            iconActive == false
-                ? Container()
-                : const SizedBox(
+        boxShadow: isShadow
+            ? null
+            : isShadowCustom
+            ? [
+                BoxShadow(
+                  color: darkMode
+                      ? Theme.of(context).primaryColor.withOpacity(0.15)
+                      : Theme.of(context).primaryColor.withOpacity(0.25),
+                  blurRadius: 15,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: cancel
+                      ? deleteColor.withOpacity(0.1)
+                      : color.withOpacity(0.5),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(15),
+          onTap: funcion,
+          child: SizedBox(
+            width: sizeWidth == 0 ? responsive.widthPercent(40) : sizeWidth,
+            height: sizeHeight,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!iconActive)
+                  Container()
+                else
+                  isLoading
+                      ? CircularProgressIndicator(
+                          color: titleColor,
+                          strokeWidth: 2,
+                          strokeAlign: -7,
+                        ) // Muestra el loader
+                      : SvgPicture.asset(
+                          '$assetImgIcon$icon',
+                          color: cancel ? deleteColor : titleColor,
+                          width: fontSize == null
+                              ? responsive.heightPercent(2)
+                              : fontSize! + 2,
+                        ),
+                if (!iconActive)
+                  Container()
+                else
+                  const SizedBox(
                     width: 10,
                   ),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: fontSize ?? responsive.heightPercent(1.7),
-                fontWeight: fontWeight,
-                color: cancel ? deleteColor : titleColor,
-              ),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: fontSize ?? responsive.heightPercent(1.7),
+                    fontWeight: fontWeight,
+                    color: cancel ? deleteColor : titleColor,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

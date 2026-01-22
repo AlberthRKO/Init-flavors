@@ -3,10 +3,10 @@ import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 
 class CircleButton extends StatelessWidget {
   const CircleButton({
-    super.key,
-    required this.callback,
     required this.icon,
     required this.background,
+    this.callback,
+    super.key,
     this.height = 0.0,
     this.color = Colors.white,
     this.width = 0.0,
@@ -14,12 +14,14 @@ class CircleButton extends StatelessWidget {
     this.borderRadius = 10,
   });
 
-  final VoidCallback callback;
+  final void Function()? callback;
   final Widget icon;
   final Color color;
   final Color background;
 
-  final double height, width, borderRadius;
+  final double height;
+  final double width;
+  final double borderRadius;
   final String title;
 
   @override
@@ -41,12 +43,11 @@ class CircleButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(borderRadius),
           onTap: callback,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               icon,
               if (title != '')
-                SizedBox(
+                const SizedBox(
                   height: 2,
                 ),
               if (title != '')
@@ -68,10 +69,10 @@ class CircleButton extends StatelessWidget {
 
 class RoundedButton extends StatelessWidget {
   const RoundedButton({
-    super.key,
     required this.callback,
     required this.icon,
     required this.background,
+    super.key,
     this.height = 0.0,
     this.width = 0.0,
     this.title = '',
@@ -83,7 +84,8 @@ class RoundedButton extends StatelessWidget {
   final Widget icon;
   final Color background;
   final Color color;
-  final double height, width;
+  final double height;
+  final double width;
   final String title;
   final bool isBorder;
 
@@ -103,7 +105,6 @@ class RoundedButton extends StatelessWidget {
             ? Border(
                 bottom: BorderSide(
                   color: color,
-                  width: 1,
                 ),
               )
             : null,
@@ -118,7 +119,7 @@ class RoundedButton extends StatelessWidget {
             children: [
               icon,
               if (title != '')
-                SizedBox(
+                const SizedBox(
                   height: 4,
                 ),
               Text(
@@ -140,10 +141,10 @@ class RoundedButton extends StatelessWidget {
 
 class CircleButton2 extends StatelessWidget {
   const CircleButton2({
-    super.key,
     required this.callback,
     required this.icon,
     required this.background,
+    super.key,
     this.height = 0.0,
     this.color = Colors.white,
     this.width = 0.0,
@@ -157,7 +158,9 @@ class CircleButton2 extends StatelessWidget {
   final Color color;
   final Color background;
 
-  final double height, width, borderRadius;
+  final double height;
+  final double width;
+  final double borderRadius;
   final String title;
   final bool isDisabled;
 
@@ -180,12 +183,11 @@ class CircleButton2 extends StatelessWidget {
           borderRadius: BorderRadius.circular(5),
           onTap: isDisabled ? () {} : callback,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               icon,
               if (title != '')
-                SizedBox(
+                const SizedBox(
                   height: 2,
                 ),
               if (title != '')

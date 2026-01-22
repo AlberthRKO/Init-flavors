@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:gw_sms/app/presentation/global/theme/colors.dart';
+import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
+import 'package:gw_sms/app/presentation/global/widgets/country_code_picker.dart';
 import 'package:intl/intl.dart';
-
-import '../theme/colors.dart';
-import '../utils/complemento.dart';
 
 class TextFormCustom extends StatefulWidget {
   const TextFormCustom({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.readOnlyField = false,
     this.isPassword = false,
@@ -21,7 +22,6 @@ class TextFormCustom extends StatefulWidget {
     this.keyboardType,
     this.iconColor = primary,
     this.onChageFunction,
-    required this.onChanged,
     this.validator,
     this.valor,
     this.inputFormatters,
@@ -33,6 +33,8 @@ class TextFormCustom extends StatefulWidget {
     this.isActionField = false,
     this.isActionFieldVerification = 0,
     this.onActionField,
+    this.isPhoneField = false,
+    this.onCountryChanged,
   });
 
   final void Function(String) onChanged;
@@ -58,6 +60,9 @@ class TextFormCustom extends StatefulWidget {
   final bool isActionField;
   final int isActionFieldVerification;
   final void Function()? onActionField;
+  final bool isPhoneField;
+  final void Function(CountryCode)? onCountryChanged;
+
   @override
   State<TextFormCustom> createState() => _TextFormCustomState();
 }
@@ -75,19 +80,19 @@ class _TextFormCustomState extends State<TextFormCustom> {
         widget.onChanged(text);
       },
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      keyboardType: widget.isNumber == true
+      keyboardType: widget.isNumber ?? false
           ? TextInputType.number
-          : widget.isEmail == true
+          : widget.isEmail ?? false
           ? TextInputType.emailAddress
           : widget.isNumber == false
           ? const TextInputType.numberWithOptions(decimal: true)
           : widget.keyboardType,
-      inputFormatters: widget.isNumber == true
+      inputFormatters: widget.isNumber ?? false
           ? <TextInputFormatter>[
               FilteringTextInputFormatter
                   .digitsOnly, // Acepta únicamente dígitos
             ]
-          : widget.isEmail == true
+          : widget.isEmail ?? false
           ? []
           : widget.isNumber == false
           ? <TextInputFormatter>[
@@ -95,11 +100,7 @@ class _TextFormCustomState extends State<TextFormCustom> {
             ]
           : widget.inputFormatters,
       readOnly: widget.readOnlyField,
-      obscureText: widget.isPassword
-          ? widget.blockedViewPass
-                ? true
-                : _isViewPass
-          : false,
+      obscureText: widget.isPassword && (widget.blockedViewPass || _isViewPass),
       controller: widget.controller,
       initialValue: widget.valor,
       maxLines: widget.maxLine == 0 ? null : widget.maxLine,
@@ -109,18 +110,26 @@ class _TextFormCustomState extends State<TextFormCustom> {
       ),
       cursorColor: Theme.of(context).textTheme.bodyLarge!.color,
       decoration: InputDecoration(
-        prefixIcon: Container(
-          height: responsive.widthPercent(10),
-          width: responsive.widthPercent(10),
-          // color: grey,
-          alignment: Alignment.center,
-          child: SvgPicture.asset(
-            assetImgIcon + widget.prefixIcon,
-            height: widget.iconHeight,
-            // ignore: deprecated_member_use
-            color: widget.iconColor,
-          ),
-        ),
+        prefixIcon: widget.isPhoneField
+            ? CountryCodePicker(
+                onChanged: (country) {
+                  if (widget.onCountryChanged != null) {
+                    widget.onCountryChanged!(country);
+                  }
+                },
+              )
+            : Container(
+                height: responsive.widthPercent(10),
+                width: responsive.widthPercent(10),
+                // color: grey,
+                alignment: Alignment.center,
+                child: SvgPicture.asset(
+                  assetImgIcon + widget.prefixIcon,
+                  height: widget.iconHeight,
+                  // ignore: deprecated_member_use
+                  color: widget.iconColor,
+                ),
+              ),
         labelText: widget.labelText,
         labelStyle: TextStyle(
           color: Theme.of(context).primaryColor.withOpacity(0.5),
@@ -152,8 +161,8 @@ class _TextFormCustomState extends State<TextFormCustom> {
         alignment: Alignment.center,
         child: SvgPicture.asset(
           _isViewPass
-              ? "${assetImgIcon}eye.svg"
-              : "${assetImgIcon}eyeClose.svg",
+              ? '${assetImgIcon}eye.svg'
+              : '${assetImgIcon}eyeClose.svg',
           height: widget.iconHeight,
           // ignore: deprecated_member_use
           color: Theme.of(context).primaryColor.withOpacity(.7),
@@ -180,8 +189,8 @@ class _TextFormCustomState extends State<TextFormCustom> {
               )
             : SvgPicture.asset(
                 widget.isActionFieldVerification == 1
-                    ? "${assetImgIcon}check.svg"
-                    : "${assetImgIcon}verificaciones.svg",
+                    ? '${assetImgIcon}check.svg'
+                    : '${assetImgIcon}verificaciones.svg',
                 height: 20,
                 // ignore: deprecated_member_use
                 color: Theme.of(context).primaryColor,
@@ -193,10 +202,10 @@ class _TextFormCustomState extends State<TextFormCustom> {
 
 class SwitchCustom extends StatefulWidget {
   const SwitchCustom({
-    super.key,
     required this.text,
-    this.valor = false,
     required this.onChanged,
+    super.key,
+    this.valor = false,
   });
 
   final String text;
@@ -234,10 +243,10 @@ class _SwitchCustomState extends State<SwitchCustom> {
 
 class SwitchCustom2 extends StatefulWidget {
   const SwitchCustom2({
-    super.key,
     required this.text,
-    this.valor = false,
     required this.onChanged,
+    super.key,
+    this.valor = false,
   });
 
   final String text;
@@ -280,9 +289,10 @@ class _SwitchCustom2State extends State<SwitchCustom2> {
 // Field para buscar
 class TextFieldSearch extends StatelessWidget {
   const TextFieldSearch({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.readOnlyField = false,
     this.isPassword = false,
@@ -292,7 +302,6 @@ class TextFieldSearch extends StatelessWidget {
     this.keyboardType,
     this.iconColor = primary,
     this.onChageFunction,
-    required this.onChanged,
     this.validator,
     this.valor,
     this.inputFormatters,
@@ -327,9 +336,7 @@ class TextFieldSearch extends StatelessWidget {
   Widget build(BuildContext context) {
     final responsive = Responsive.of(context);
     return TextFormField(
-      onChanged: (text) {
-        onChanged(text);
-      },
+      onChanged: onChanged,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       keyboardType: keyboardType,
       textInputAction: TextInputAction.search,
@@ -341,7 +348,6 @@ class TextFieldSearch extends StatelessWidget {
       // obscureText: .isPassword ? _isViewPass : false,
       // controller: widget.controller,
       initialValue: valor ?? '',
-      maxLines: 1,
       style: TextStyle(
         fontSize: responsive.heightPercent(1.4),
         color: Theme.of(context).textTheme.bodyLarge!.color,
@@ -364,7 +370,7 @@ class TextFieldSearch extends StatelessWidget {
         labelText: labelText,
         labelStyle: TextStyle(
           color: Theme.of(context).primaryColor.withOpacity(0.5),
-          fontSize: 14.0,
+          fontSize: 14,
         ),
         suffixIcon: search
             ? InkWell(
@@ -375,7 +381,7 @@ class TextFieldSearch extends StatelessWidget {
                   height: responsive.widthPercent(12),
                   alignment: Alignment.center,
                   child: SvgPicture.asset(
-                    "${assetImgIcon}search.svg",
+                    '${assetImgIcon}search.svg',
                     width: responsive.heightPercent(2.4),
                     color: iconColor,
                   ),
@@ -399,10 +405,10 @@ class TextFieldSearch extends StatelessWidget {
 
 class TextFormCustomCard extends StatefulWidget {
   const TextFormCustomCard({
-    super.key,
     required this.labelText,
-    this.controller,
     required this.onChanged,
+    super.key,
+    this.controller,
   });
 
   final void Function(String) onChanged;
@@ -419,7 +425,7 @@ class _TextFormCustomCardState extends State<TextFormCustomCard> {
   Widget build(BuildContext context) {
     return TextField(
       controller: widget.controller,
-      decoration: const InputDecoration(labelText: "Ingrese un número"),
+      decoration: const InputDecoration(labelText: 'Ingrese un número'),
     );
   }
 
@@ -441,14 +447,14 @@ class _TextFormCustomCardState extends State<TextFormCustomCard> {
 
 class DatePickerFormCustom extends StatefulWidget {
   const DatePickerFormCustom({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.iconHeight = 20.0,
     this.height = 50.0,
     this.iconColor = primary,
-    required this.onChanged,
     this.validator,
     this.initialDate,
     this.firstDate,
@@ -510,14 +516,12 @@ class _DatePickerFormCustomState extends State<DatePickerFormCustom> {
       controller: _controller,
       readOnly: true,
       onTap: () async {
-        DateTime now = DateTime.now();
-        DateTime defaultStartDate = DateTime(
+        final DateTime now = DateTime.now();
+        final DateTime defaultStartDate = DateTime(
           now.year - 10,
-          1,
-          1,
         ); // Ajusta el año según lo que necesites
 
-        DateTime? pickedDate = await showDatePicker(
+        final DateTime? pickedDate = await showDatePicker(
           context: context,
           initialDate: widget.initialDate ?? now,
           firstDate: widget.firstDate ?? defaultStartDate,
@@ -584,14 +588,14 @@ class _DatePickerFormCustomState extends State<DatePickerFormCustom> {
 
 class TimePickerFormCustom extends StatefulWidget {
   const TimePickerFormCustom({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.iconHeight = 20.0,
     this.height = 50.0,
     this.iconColor,
-    required this.onChanged,
     this.validator,
     this.initialTime,
     this.enabled = true,
@@ -647,8 +651,8 @@ class _TimePickerFormCustomState extends State<TimePickerFormCustom> {
       controller: _controller,
       readOnly: true,
       onTap: () async {
-        TimeOfDay now = TimeOfDay.now();
-        TimeOfDay? pickedTime = await showTimePicker(
+        final TimeOfDay now = TimeOfDay.now();
+        final TimeOfDay? pickedTime = await showTimePicker(
           context: context,
           initialTime: widget.initialTime ?? now,
         );
@@ -702,9 +706,9 @@ class _TimePickerFormCustomState extends State<TimePickerFormCustom> {
 
 class NumberRangePicker extends StatefulWidget {
   const NumberRangePicker({
-    super.key,
     required this.labelText,
     required this.onChanged,
+    super.key,
     this.initialValue = 10,
     this.step = 10,
     this.minValue = 0, // Nuevo parámetro minValue
@@ -791,7 +795,7 @@ class _NumberRangePickerState extends State<NumberRangePicker> {
             width: responsive.widthPercent(10),
             alignment: Alignment.center,
             child: SvgPicture.asset(
-              "${assetImgIcon}arrow-left.svg",
+              '${assetImgIcon}arrow-left.svg',
               width: responsive.heightPercent(2.5),
               color: widget.iconColor,
             ),
@@ -813,7 +817,7 @@ class _NumberRangePickerState extends State<NumberRangePicker> {
             width: responsive.widthPercent(10),
             alignment: Alignment.center,
             child: SvgPicture.asset(
-              "${assetImgIcon}arrow-right.svg",
+              '${assetImgIcon}arrow-right.svg',
               width: responsive.heightPercent(2.5),
               color: widget.iconColor,
             ),
@@ -834,9 +838,9 @@ class _NumberRangePickerState extends State<NumberRangePicker> {
 
 class NumberRangePicker2 extends StatefulWidget {
   const NumberRangePicker2({
-    super.key,
     required this.labelText,
     required this.onChanged,
+    super.key,
     this.initialValue = 10,
     this.step = 10,
     this.minValue = 0, // Nuevo parámetro minValue
@@ -926,7 +930,7 @@ class _NumberRangePicker2State extends State<NumberRangePicker2> {
               width: responsive.widthPercent(10),
               alignment: Alignment.center,
               child: SvgPicture.asset(
-                "${assetImgIcon}arrow-left.svg",
+                '${assetImgIcon}arrow-left.svg',
                 width: responsive.heightPercent(2.5),
                 color: widget.iconColor,
               ),
@@ -948,7 +952,7 @@ class _NumberRangePicker2State extends State<NumberRangePicker2> {
               width: responsive.widthPercent(10),
               alignment: Alignment.center,
               child: SvgPicture.asset(
-                "${assetImgIcon}arrow-right.svg",
+                '${assetImgIcon}arrow-right.svg',
                 width: responsive.heightPercent(2.5),
                 color: widget.iconColor,
               ),
@@ -963,14 +967,14 @@ class _NumberRangePicker2State extends State<NumberRangePicker2> {
 
 class DateRangePickerFormCustom extends StatefulWidget {
   const DateRangePickerFormCustom({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.iconHeight = 20.0,
     this.height = 50.0,
     this.iconColor = primary,
-    required this.onChanged,
     this.validator,
     this.initialDateRange,
     this.firstDate,
@@ -1030,14 +1034,12 @@ class _DateRangePickerFormCustomState extends State<DateRangePickerFormCustom> {
       controller: _controller,
       readOnly: true,
       onTap: () async {
-        DateTime now = DateTime.now();
-        DateTime defaultStartDate = DateTime(
+        final DateTime now = DateTime.now();
+        final DateTime defaultStartDate = DateTime(
           now.year - 10,
-          1,
-          1,
         ); // Ajusta el año según lo que necesites
 
-        DateTimeRange? pickedDateRange = await showDateRangePicker(
+        final DateTimeRange? pickedDateRange = await showDateRangePicker(
           context: context,
           initialDateRange: widget.initialDateRange,
           firstDate: widget.firstDate ?? defaultStartDate,
@@ -1085,15 +1087,15 @@ class _DateRangePickerFormCustomState extends State<DateRangePickerFormCustom> {
 
 class DateRangePickerWidgetFormCustom extends StatefulWidget {
   const DateRangePickerWidgetFormCustom({
-    super.key,
     required this.prefixIcon,
     required this.labelText,
     required this.child,
+    required this.onChanged,
+    super.key,
     this.controller,
     this.iconHeight = 20.0,
     this.height = 50.0,
     this.iconColor = primary,
-    required this.onChanged,
     this.validator,
     this.initialDateRange,
     this.firstDate,
@@ -1139,7 +1141,7 @@ class _DateRangePickerWidgetFormCustomState
 
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTime now = DateTime.now();
-    final DateTime defaultStartDate = DateTime(now.year - 10, 1, 1);
+    final DateTime defaultStartDate = DateTime(now.year - 10);
 
     // Primera selección: Elegir fecha inicial
     final DateTime? startDate = await showDatePicker(
@@ -1155,7 +1157,7 @@ class _DateRangePickerWidgetFormCustomState
     final DateTime? endDate = await showDatePicker(
       context: context,
       initialDate: startDate.add(
-        Duration(days: 1),
+        const Duration(days: 1),
       ), // Día siguiente por defecto
       firstDate: startDate, // No permitir fechas anteriores a la inicial
       lastDate: DateTime(
