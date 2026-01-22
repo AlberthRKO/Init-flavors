@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
@@ -9,10 +10,12 @@ import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_appbar.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_enviar_sms.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_seleccion_operadora.dart';
+import 'package:gw_sms/app/presentation/global/widgets/modals/modal_ussd_response.dart';
 import 'package:gw_sms/app/presentation/global/widgets/navigation_buttons.dart';
 import 'package:gw_sms/app/presentation/global/widgets/text_form_custom.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:provider/provider.dart';
+import 'package:ussd_launcher/ussd_launcher.dart';
 
 class SmsChat {
   SmsChat({
@@ -99,6 +102,169 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _operadoraSeleccionada = operadora ?? '';
       });
+    }
+  }
+
+  String _getUssdCode(String operadora) {
+    switch (operadora.toLowerCase()) {
+      case 'entel':
+        return '*105#';
+      case 'viva':
+        return '*555#';
+      case 'tigo':
+        return '*103#';
+      default:
+        return '*105#';
+    }
+  }
+
+  Future<void> _consultarSaldo() async {
+    if (_operadoraSeleccionada.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, selecciona una operadora primero'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Verificar si el servicio de accesibilidad está habilitado
+    try {
+      final isAccessibilityEnabled =
+          await UssdLauncher.isAccessibilityEnabled();
+
+      if (!isAccessibilityEnabled && mounted) {
+        final shouldEnable = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Permiso requerido'),
+            content: const Text(
+              'Para consultar el saldo, necesitas habilitar el servicio de '
+              'accesibilidad. ¿Deseas abrir la configuración?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Abrir configuración'),
+              ),
+            ],
+          ),
+        );
+
+        if (shouldEnable ?? false) {
+          await UssdLauncher.openAccessibilitySettings();
+        }
+        return;
+      }
+
+      // Obtener las tarjetas SIM disponibles
+      final simCards = await UssdLauncher.getSimCards();
+
+      if (simCards.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se encontraron tarjetas SIM'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Mostrar modal de carga
+      if (mounted) {
+        showMaterialModalBottomSheet<void>(
+          context: context,
+          isDismissible: false,
+          enableDrag: false,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return const ModalUssdResponse(
+              response: '',
+              isLoading: true,
+            );
+          },
+        );
+      }
+
+      // Ejecutar el código USSD
+      final ussdCode = _getUssdCode(_operadoraSeleccionada);
+      final subscriptionId = simCards.first['subscriptionId'] as int?;
+
+      final response = await UssdLauncher.sendUssdRequest(
+        ussdCode: ussdCode,
+        subscriptionId: subscriptionId ?? -1,
+      );
+
+      // Cerrar modal de carga
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar respuesta
+      if (mounted) {
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: response ?? 'No se recibió respuesta',
+            );
+          },
+        );
+      }
+    } on PlatformException catch (e) {
+      // Cerrar modal de carga si está abierto
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        String errorMessage = 'Error al consultar saldo';
+
+        if (e.code == 'ACCESSIBILITY_NOT_ENABLED') {
+          errorMessage = 'Servicio de accesibilidad no habilitado';
+        } else if (e.code == 'PERMISSION_DENIED') {
+          errorMessage = 'Permisos denegados';
+        } else if (e.code == 'USSD_FAILED') {
+          errorMessage = 'La consulta USSD falló';
+        } else {
+          errorMessage = e.message ?? 'Error desconocido';
+        }
+
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: errorMessage,
+            );
+          },
+        );
+      }
+    } catch (e) {
+      // Cerrar modal de carga si está abierto
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: 'Error inesperado: $e',
+            );
+          },
+        );
+      }
     }
   }
 
@@ -218,7 +384,7 @@ class _HomePageState extends State<HomePage> {
             nombreCompleto: _deviceInfo,
           ),
           operadora: _operadoraSeleccionada,
-          onConsultar: () {},
+          onConsultar: _consultarSaldo,
           onChange: _showOperadoraModal,
           onComprar: () {},
         ),
