@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gw_sms/app/presentation/routes/router.dart';
 import 'package:gw_sms/l10n/l10n.dart';
 
 class App extends StatefulWidget {
@@ -8,9 +9,20 @@ class App extends StatefulWidget {
   State<App> createState() => _AppState();
 }
 
-class _AppState extends State<App> {
+class _AppState extends State<App> with WidgetsBindingObserver, RouterMixin {
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     return MaterialApp.router(
       theme: ThemeData(
         appBarTheme: AppBarTheme(
@@ -18,6 +30,7 @@ class _AppState extends State<App> {
         ),
         useMaterial3: true,
       ),
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
