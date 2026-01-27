@@ -296,8 +296,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     // Ejecutar USSD
     try {
-      // Obtener las tarjetas SIM disponibles
-      final simCards = await UssdLauncher.getSimCards();
+      // Usar las SIMs ya detectadas
+      final simCards = _availableSimCards;
 
       if (simCards.isEmpty) {
         if (mounted) {
@@ -310,6 +310,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         }
         return;
       }
+
+      // Buscar la SIM que corresponde a la operadora seleccionada
+      Map<String, dynamic>? selectedSim;
+      for (final sim in simCards) {
+        final carrierName =
+            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
+        final displayName =
+            (sim['displayName'] as String?)?.toLowerCase() ?? '';
+
+        // Detectar si esta SIM corresponde a la operadora seleccionada
+        if (_operadoraSeleccionada == 'entel' &&
+            (carrierName.contains('entel') || displayName.contains('entel'))) {
+          selectedSim = sim;
+          break;
+        } else if (_operadoraSeleccionada == 'viva' &&
+            (carrierName.contains('vivas') || displayName.contains('viva'))) {
+          selectedSim = sim;
+          break;
+        } else if (_operadoraSeleccionada == 'tigo' &&
+            (carrierName.contains('tigo') || displayName.contains('tigo'))) {
+          selectedSim = sim;
+          break;
+        } else if (carrierName.contains(_operadoraSeleccionada) ||
+            displayName.contains(_operadoraSeleccionada)) {
+          selectedSim = sim;
+          break;
+        }
+      }
+
+      // Si no se encontró la SIM específica, usar la primera
+      selectedSim ??= simCards.first;
 
       // Mostrar modal de carga
       if (mounted) {
@@ -327,9 +358,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
 
-      // Ejecutar el código USSD
+      // Ejecutar el código USSD con la SIM seleccionada
       final ussdCode = _getUssdCode(_operadoraSeleccionada);
-      final subscriptionId = simCards.first['subscriptionId'] as int?;
+      final subscriptionId = selectedSim['subscriptionId'] as int?;
+
+      print(
+        'Ejecutando USSD $ussdCode con SIM: ${selectedSim['displayName']} (subscriptionId: $subscriptionId)',
+      );
 
       final response = await UssdLauncher.sendUssdRequest(
         ussdCode: ussdCode,
@@ -525,197 +560,205 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           onComprar: () {},
         ),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.transparent,
-                    ),
-                    child: TextFieldSearch(
-                      prefixIcon: 'message.svg',
-                      labelText: 'Buscar mensaje',
-                      iconHeight: responsive.heightPercent(2.4),
-                      iconColor: Theme.of(context).primaryColor,
-                      onChanged: (text) {},
-                      onTapSearch: () async {},
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                        color: Colors.transparent,
+                      ),
+                      child: TextFieldSearch(
+                        prefixIcon: 'message.svg',
+                        labelText: 'Buscar mensaje',
+                        iconHeight: responsive.heightPercent(2.4),
+                        iconColor: Theme.of(context).primaryColor,
+                        onChanged: (text) {},
+                        onTapSearch: () async {},
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(
-            height: 10,
-          ),
-          Expanded(
-            child: Stack(
-              children: [
-                NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    _showBottombarScroll(context);
-                    return true;
-                  },
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: chats.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      indent: 80,
-                      color: Colors.grey.withOpacity(0.2),
-                    ),
-                    itemBuilder: (context, index) {
-                      final chat = chats[index];
-                      return InkWell(
-                        onTap: () {
-                          // Navegar al chat individual
-                          print('Abrir chat con ${chat.phoneNumber}');
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          child: Row(
-                            children: [
-                              // Avatar con iniciales del número
-                              Container(
-                                width: responsive.widthPercent(12),
-                                height: responsive.widthPercent(12),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: _getGradientColors(index),
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Center(
-                                  child: SvgPicture.asset(
-                                    'assets/images/icons/user_icon.svg',
-                                    width: responsive.heightPercent(3),
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Contenido del mensaje
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            chat.phoneNumber,
-                                            style: TextStyle(
-                                              fontSize: responsive
-                                                  .heightPercent(1.6),
-                                              fontWeight: FontWeight.w600,
-                                              color: Theme.of(
-                                                context,
-                                              ).textTheme.bodyLarge!.color,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        Text(
-                                          chat.time,
-                                          style: TextStyle(
-                                            fontSize: responsive.heightPercent(
-                                              1.4,
-                                            ),
-                                            color: chat.unreadCount > 0
-                                                ? Theme.of(context).primaryColor
-                                                : Colors.grey,
-                                            fontWeight: chat.unreadCount > 0
-                                                ? FontWeight.w600
-                                                : FontWeight.normal,
-                                          ),
-                                        ),
-                                      ],
+            const SizedBox(
+              height: 10,
+            ),
+            Expanded(
+              child: Stack(
+                children: [
+                  NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      _showBottombarScroll(context);
+                      return true;
+                    },
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: chats.length,
+                      separatorBuilder: (context, index) => Divider(
+                        height: 1,
+                        indent: 80,
+                        color: Colors.grey.withOpacity(0.2),
+                      ),
+                      itemBuilder: (context, index) {
+                        final chat = chats[index];
+                        return InkWell(
+                          onTap: () {
+                            // Navegar al chat individual
+                            print('Abrir chat con ${chat.phoneNumber}');
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                // Avatar con iniciales del número
+                                Container(
+                                  width: responsive.widthPercent(12),
+                                  height: responsive.widthPercent(12),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: _getGradientColors(index),
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            chat.lastMessage,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Center(
+                                    child: SvgPicture.asset(
+                                      'assets/images/icons/user_icon.svg',
+                                      width: responsive.heightPercent(3),
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Contenido del mensaje
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              chat.phoneNumber,
+                                              style: TextStyle(
+                                                fontSize: responsive
+                                                    .heightPercent(1.6),
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge!.color,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Text(
+                                            chat.time,
                                             style: TextStyle(
                                               fontSize: responsive
-                                                  .heightPercent(1.4),
-                                              color: Colors.grey[600],
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        if (chat.unreadCount > 0) ...[
-                                          const SizedBox(width: 8),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(
-                                                context,
-                                              ).primaryColor,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              chat.unreadCount > 9
-                                                  ? '9+'
-                                                  : chat.unreadCount.toString(),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                                  .heightPercent(
+                                                    1.4,
+                                                  ),
+                                              color: chat.unreadCount > 0
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).primaryColor
+                                                  : Colors.grey,
+                                              fontWeight: chat.unreadCount > 0
+                                                  ? FontWeight.w600
+                                                  : FontWeight.normal,
                                             ),
                                           ),
                                         ],
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              chat.lastMessage,
+                                              style: TextStyle(
+                                                fontSize: responsive
+                                                    .heightPercent(1.4),
+                                                color: Colors.grey[600],
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (chat.unreadCount > 0) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(
+                                                  context,
+                                                ).primaryColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                chat.unreadCount > 9
+                                                    ? '9+'
+                                                    : chat.unreadCount
+                                                          .toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
+                        );
+                      },
+                    ),
+                  ),
+                  CustomFloatingButton(
+                    showBar: bottomBarState.showBottomBar,
+                    onGuardar: () async {
+                      await showMaterialModalBottomSheet<bool>(
+                        context: context,
+                        isDismissible: false,
+                        enableDrag: false,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) {
+                          return const ModalEnviarSMS();
+                        },
                       );
                     },
                   ),
-                ),
-                CustomFloatingButton(
-                  showBar: bottomBarState.showBottomBar,
-                  onGuardar: () async {
-                    await showMaterialModalBottomSheet<bool>(
-                      context: context,
-                      isDismissible: false,
-                      enableDrag: false,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) {
-                        return const ModalEnviarSMS();
-                      },
-                    );
-                  },
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

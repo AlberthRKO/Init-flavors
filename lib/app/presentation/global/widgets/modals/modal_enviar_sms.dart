@@ -145,24 +145,19 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
                     const SizedBox(
                       height: smallSpacer,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        CustomButtonBoxStyle(
-                          title: 'Enviar SMS',
-                          funcion: () {
-                            final isValid = Form.of(context).validate();
-                            if (isValid) {}
-                          },
-                          color: violet,
-                          iconActive: true,
-                          icon: 'paper.svg',
-                          fontSize: responsive.heightPercent(1.4),
-                          sizeHeight: responsive.widthPercent(10),
-                          sizeWidth: responsive.widthPercent(35),
-                          isLoading: fetching,
-                        ),
-                      ],
+                    CustomButtonBoxStyle(
+                      title: 'Enviar SMS',
+                      funcion: () {
+                        final isValid = Form.of(context).validate();
+                        if (isValid) {}
+                      },
+                      color: violet,
+                      iconActive: true,
+                      icon: 'paper.svg',
+                      fontSize: responsive.heightPercent(1.4),
+                      sizeHeight: responsive.widthPercent(10),
+                      sizeWidth: responsive.widthPercent(100),
+                      isLoading: fetching,
                     ),
                     const SizedBox(
                       height: smallSpacer,
