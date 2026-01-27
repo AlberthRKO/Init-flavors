@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="ussd_accessibility_service_description">Permite que GW SMS lea automáticamente las
+        respuestas USSD para consultar tu saldo y realizar otras operaciones. Este servicio es
+        necesario para el funcionamiento de las consultas USSD.</string>
+</resources>

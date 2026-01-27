@@ -189,37 +189,38 @@ class _CustomAppbarState extends State<CustomAppbar> {
                                     ],
                                   ),
                                 ),
-                                DropdownMenuItem(
-                                  value: 'change',
-                                  child: Row(
-                                    children: [
-                                      SvgPicture.asset(
-                                        '${assetImgUssd}chip.svg',
-                                        width: responsive.heightPercent(
-                                          2.5,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Cambiar línea',
-                                        style: TextStyle(
-                                          fontSize: responsive.heightPercent(
-                                            1.5,
+                                if (widget.onChange != null)
+                                  DropdownMenuItem(
+                                    value: 'change',
+                                    child: Row(
+                                      children: [
+                                        SvgPicture.asset(
+                                          '${assetImgUssd}chip.svg',
+                                          width: responsive.heightPercent(
+                                            2.5,
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Cambiar línea',
+                                          style: TextStyle(
+                                            fontSize: responsive.heightPercent(
+                                              1.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                               onChanged: (value) {
                                 // Manejo de las opciones seleccionadas
                                 if (value == 'consultar') {
-                                  widget.onConsultar!();
+                                  widget.onConsultar?.call();
                                 } else if (value == 'comprar') {
-                                  widget.onComprar!();
+                                  widget.onComprar?.call();
                                 } else if (value == 'change') {
-                                  widget.onChange!();
+                                  widget.onChange?.call();
                                 }
                               },
                               dropdownStyleData: DropdownStyleData(

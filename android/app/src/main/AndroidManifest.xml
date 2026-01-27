@@ -2,9 +2,14 @@
     <!-- Permisos necesarios para USSD -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <!-- Permisos para el servicio de accesibilidad (requerido para USSD) -->
     <uses-permission android:name="android.permission.BIND_ACCESSIBILITY_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!-- Permisos adicionales necesarios -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="${appName}"
@@ -37,6 +42,24 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Servicio de accesibilidad para USSD Launcher -->
+        <service
+            android:name="com.kavina.ussd_launcher.UssdAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/ussd_accessibility_service_config" />
+        </service>
+
+        <!-- Servicio de overlay para ocultar diálogos USSD -->
+        <service
+            android:name="com.kavina.ussd_launcher.UssdOverlayService"
+            android:exported="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

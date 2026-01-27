@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +16,7 @@ import 'package:gw_sms/app/presentation/global/widgets/modals/modal_ussd_respons
 import 'package:gw_sms/app/presentation/global/widgets/navigation_buttons.dart';
 import 'package:gw_sms/app/presentation/global/widgets/text_form_custom.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:ussd_launcher/ussd_launcher.dart';
 
@@ -39,21 +42,87 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   late bool _showBottomBar;
   final _secureStorage = const FlutterSecureStorage();
   bool _hasCheckedOperadora = false;
   String _deviceInfo = 'Cargando...';
   String _operadoraSeleccionada = '';
+  bool _isWaitingForAccessibility = false;
+  bool _hasRequestedPhonePermission = false;
+  List<Map<String, dynamic>> _availableSimCards = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadInitialData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAndShowOperadoraModal();
+      _initializeApp();
     });
+  }
+
+  Future<void> _initializeApp() async {
+    // Primero solicitar permiso y cargar SIMs
+    await _requestPhonePermissionOnce();
+    // Luego mostrar el modal con los SIMs ya detectados
+    await _checkAndShowOperadoraModal();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Cuando el usuario regresa a la app después de ir a configuración
+    if (state == AppLifecycleState.resumed && _isWaitingForAccessibility) {
+      _isWaitingForAccessibility = false;
+      // Reintentar la consulta automáticamente
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _consultarSaldo();
+        }
+      });
+    }
+  }
+
+  Future<void> _requestPhonePermissionOnce() async {
+    if (_hasRequestedPhonePermission) return;
+    _hasRequestedPhonePermission = true;
+
+    final status = await Permission.phone.status;
+    if (!status.isGranted) {
+      final result = await Permission.phone.request();
+      if (result.isGranted) {
+        await _loadAvailableSimCards();
+      }
+    } else {
+      await _loadAvailableSimCards();
+    }
+  }
+
+  Future<void> _loadAvailableSimCards() async {
+    try {
+      final simCards = await UssdLauncher.getSimCards();
+      if (mounted) {
+        setState(() {
+          _availableSimCards = simCards;
+          log('Tarjetas SIM disponibles: $_availableSimCards');
+        });
+        print('SIMs detectados: ${simCards.length}');
+        for (final sim in simCards) {
+          print('SIM: ${sim['displayName']} - Slot: ${sim['slotIndex']}');
+        }
+      }
+    } catch (e) {
+      print('Error al obtener tarjetas SIM: $e');
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -79,7 +148,40 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (operadoraSeleccionada == null && mounted) {
-      await _showOperadoraModal();
+      // Si solo hay 1 SIM, autoseleccionar sin mostrar modal
+      if (_availableSimCards.length == 1) {
+        final sim = _availableSimCards.first;
+        final carrierName =
+            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
+        final displayName =
+            (sim['displayName'] as String?)?.toLowerCase() ?? '';
+
+        // Detectar la operadora
+        String operadoraName;
+        if (carrierName.contains('entel') || displayName.contains('entel')) {
+          operadoraName = 'entel';
+        } else if (carrierName.contains('vivas') ||
+            displayName.contains('viva')) {
+          operadoraName = 'viva';
+        } else if (carrierName.contains('tigo') ||
+            displayName.contains('tigo')) {
+          operadoraName = 'tigo';
+        } else {
+          operadoraName = carrierName.isNotEmpty ? carrierName : 'desconocido';
+        }
+
+        await _secureStorage.write(
+          key: 'operadora_seleccionada',
+          value: operadoraName,
+        );
+
+        setState(() {
+          _operadoraSeleccionada = operadoraName;
+        });
+      } else {
+        // Si hay 0 o múltiples SIMs, mostrar modal
+        await _showOperadoraModal();
+      }
     }
   }
 
@@ -90,7 +192,9 @@ class _HomePageState extends State<HomePage> {
       enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return const ModalSeleccionOperadora();
+        return ModalSeleccionOperadora(
+          availableSimCards: _availableSimCards,
+        );
       },
     );
 
@@ -112,7 +216,7 @@ class _HomePageState extends State<HomePage> {
       case 'viva':
         return '*555#';
       case 'tigo':
-        return '*103#';
+        return '*105#';
       default:
         return '*105#';
     }
@@ -129,39 +233,69 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    // Verificar si el servicio de accesibilidad está habilitado
-    try {
-      final isAccessibilityEnabled =
-          await UssdLauncher.isAccessibilityEnabled();
-
-      if (!isAccessibilityEnabled && mounted) {
-        final shouldEnable = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Permiso requerido'),
-            content: const Text(
-              'Para consultar el saldo, necesitas habilitar el servicio de '
-              'accesibilidad. ¿Deseas abrir la configuración?',
+    // Verificar permiso de teléfono
+    final phoneStatus = await Permission.phone.status;
+    if (!phoneStatus.isGranted) {
+      final result = await Permission.phone.request();
+      if (!result.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Se requiere el permiso de teléfono para consultar saldo',
+              ),
+              backgroundColor: Colors.red,
+              action: result.isPermanentlyDenied
+                  ? const SnackBarAction(
+                      label: 'Configuración',
+                      onPressed: openAppSettings,
+                    )
+                  : null,
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Abrir configuración'),
-              ),
-            ],
-          ),
-        );
-
-        if (shouldEnable ?? false) {
-          await UssdLauncher.openAccessibilitySettings();
+          );
         }
         return;
       }
+    }
 
+    // Verificar accesibilidad ANTES de intentar ejecutar
+    final isAccessibilityEnabled = await UssdLauncher.isAccessibilityEnabled();
+    if (!isAccessibilityEnabled && mounted) {
+      // Mostrar el diálogo con pasos ANTES de intentar
+      final shouldEnable = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Accesibilidad requerida'),
+          content: const Text(
+            'El servicio de accesibilidad no está habilitado.\n\n'
+            'Pasos:\n'
+            '1. Busca "GW SMS" en la lista\n'
+            '2. Activa el interruptor\n'
+            '3. Acepta el permiso\n'
+            '4. Regresa a la app',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Ir a configuración'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldEnable ?? false) {
+        _isWaitingForAccessibility = true;
+        await UssdLauncher.openAccessibilitySettings();
+      }
+      return;
+    }
+
+    // Ejecutar USSD
+    try {
       // Obtener las tarjetas SIM disponibles
       final simCards = await UssdLauncher.getSimCards();
 
@@ -226,14 +360,15 @@ class _HomePageState extends State<HomePage> {
       }
 
       if (mounted) {
+        // Manejar errores
         String errorMessage = 'Error al consultar saldo';
-
-        if (e.code == 'ACCESSIBILITY_NOT_ENABLED') {
-          errorMessage = 'Servicio de accesibilidad no habilitado';
-        } else if (e.code == 'PERMISSION_DENIED') {
+        if (e.code == 'PERMISSION_DENIED') {
           errorMessage = 'Permisos denegados';
         } else if (e.code == 'USSD_FAILED') {
           errorMessage = 'La consulta USSD falló';
+        } else if (e.code == 'ACCESSIBILITY_NOT_ENABLED') {
+          errorMessage =
+              'Servicio de accesibilidad no habilitado correctamente';
         } else {
           errorMessage = e.message ?? 'Error desconocido';
         }
@@ -385,7 +520,8 @@ class _HomePageState extends State<HomePage> {
           ),
           operadora: _operadoraSeleccionada,
           onConsultar: _consultarSaldo,
-          onChange: _showOperadoraModal,
+          // Solo permitir cambiar línea si hay más de 1 SIM
+          onChange: _availableSimCards.length > 1 ? _showOperadoraModal : null,
           onComprar: () {},
         ),
       ),
