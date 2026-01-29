@@ -1,13 +1,18 @@
+// ignore_for_file: inference_failure_on_function_invocation
+
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
+import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/theme/colors.dart';
 import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:gw_sms/app/presentation/global/widgets/circle_button.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_avatar.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_heading.dart';
+import 'package:gw_sms/app/presentation/global/widgets/modals/modal_error.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 class CustomAppbar extends StatefulWidget {
   const CustomAppbar({
@@ -23,6 +28,7 @@ class CustomAppbar extends StatefulWidget {
     this.isSearch = false,
     this.countNoti = 0,
     this.operadora,
+    this.onComprarPaquete,
   });
 
   final bool isCurved;
@@ -33,6 +39,7 @@ class CustomAppbar extends StatefulWidget {
   final bool isSearch;
   final void Function()? onConsultar;
   final void Function()? onComprar;
+  final void Function(String)? onComprarPaquete;
   final void Function()? onChange;
   final String? operadora;
 
@@ -44,6 +51,178 @@ class CustomAppbar extends StatefulWidget {
 
 class _CustomAppbarState extends State<CustomAppbar> {
   final _dropdownKey = GlobalKey<DropdownButton2State<dynamic>>();
+
+  Future<void> _showPackagesDropdown(BuildContext context) async {
+    final responsive = Responsive.of(context);
+
+    // Obtener operador
+    final operador = widget.operadora ?? '';
+    if (operador.isEmpty) {
+      await showMaterialModalBottomSheet(
+        isDismissible: false,
+        enableDrag: false,
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pop(context);
+          });
+          return const ModalError(
+            error: 'Por favor, selecciona una operadora primero',
+          );
+        },
+      );
+      return;
+    }
+
+    // Validar si el operador está soportado
+    if (!UssdCommandService.isOperadorSoportado(operador)) {
+      await showMaterialModalBottomSheet(
+        isDismissible: false,
+        enableDrag: false,
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pop(context);
+          });
+          return ModalError(
+            error:
+                'Operador "$operador" no tiene paquetes configurados.\n'
+                'Operadores disponibles: ${UssdCommandService.getOperadoresDisponibles().join(", ")}',
+          );
+        },
+      );
+      return;
+    }
+
+    // Obtener comandos de paquetes dinámicamente
+    final List<Widget> packageOptions = [];
+    try {
+      final commands = UssdCommandService.getCategoryCommands(
+        operador,
+        'paquetes',
+      );
+
+      if (commands.isEmpty) {
+        await showMaterialModalBottomSheet(
+          isDismissible: false,
+          enableDrag: false,
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            Future.delayed(const Duration(seconds: 2), () {
+              Navigator.pop(context);
+            });
+            return const ModalError(
+              error: 'No hay paquetes disponibles para este operador',
+            );
+          },
+        );
+        return;
+      }
+
+      // Construir opciones dinámicamente
+      for (final command in commands) {
+        packageOptions.add(
+          _buildPackageOption(
+            context,
+            command.title,
+            command.code,
+            responsive,
+          ),
+        );
+      }
+    } catch (e) {
+      await showMaterialModalBottomSheet(
+        isDismissible: false,
+        enableDrag: false,
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pop(context);
+          });
+          return ModalError(
+            error: 'Error: $e',
+          );
+        },
+      );
+      return;
+    }
+
+    showMaterialModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: responsive.widthPercent(5),
+          vertical: responsive.heightPercent(3),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomHeading(
+              title: 'Paquetes',
+              subTitle: operador.toUpperCase(),
+              fonsizeTitle: responsive.heightPercent(2.2),
+              fonsizesubTitle: responsive.heightPercent(1.5),
+              color: Theme.of(context).textTheme.bodyLarge!.color!,
+              centro: true,
+            ),
+            SizedBox(height: responsive.heightPercent(2)),
+            Divider(
+              height: 1,
+              color: Theme.of(context).dividerColor.withOpacity(0.3),
+            ),
+            SizedBox(height: responsive.heightPercent(1)),
+            ...packageOptions,
+            SizedBox(height: responsive.heightPercent(2)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPackageOption(
+    BuildContext context,
+    String label,
+    String ussdCode,
+    Responsive responsive,
+  ) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        widget.onComprarPaquete?.call(ussdCode);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: responsive.heightPercent(1.5),
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: responsive.heightPercent(1.5),
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +397,8 @@ class _CustomAppbarState extends State<CustomAppbar> {
                                 if (value == 'consultar') {
                                   widget.onConsultar?.call();
                                 } else if (value == 'comprar') {
-                                  widget.onComprar?.call();
+                                  // Mostrar segundo dropdown para paquetes
+                                  _showPackagesDropdown(context);
                                 } else if (value == 'change') {
                                   widget.onChange?.call();
                                 }

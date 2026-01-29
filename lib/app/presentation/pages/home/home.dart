@@ -1,3 +1,5 @@
+// ignore_for_file: inference_failure_on_function_invocation
+
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -7,10 +9,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
+import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/utils/funciones.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_appbar.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_enviar_sms.dart';
+import 'package:gw_sms/app/presentation/global/widgets/modals/modal_error.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_seleccion_operadora.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_ussd_response.dart';
 import 'package:gw_sms/app/presentation/global/widgets/navigation_buttons.dart';
@@ -155,6 +159,34 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return phoneGranted;
   }
 
+  /// Detecta el operador basado en carrierName y displayName
+  /// Busca en ambos campos ya que algunos chips pueden tener nombres compuestos
+  String _detectOperador(String carrierName, String displayName) {
+    final carrier = carrierName.toLowerCase();
+    final display = displayName.toLowerCase();
+
+    // Detectar ENTEL (tiene prioridad)
+    if (carrier.contains('entel') || display.contains('entel')) {
+      return 'entel';
+    }
+
+    // Detectar VIVA (también buscar "vivas" por variaciones)
+    if (carrier.contains('viva') ||
+        carrier.contains('vivas') ||
+        display.contains('viva') ||
+        display.contains('vivas')) {
+      return 'viva';
+    }
+
+    // Detectar TIGO
+    if (carrier.contains('tigo') || display.contains('tigo')) {
+      return 'tigo';
+    }
+
+    // Si no coincide con ninguno, retornar el carrier name o desconocido
+    return carrier.isNotEmpty ? carrier : 'desconocido';
+  }
+
   Future<void> _checkAndShowOperadoraModal() async {
     if (_hasCheckedOperadora) return;
     _hasCheckedOperadora = true;
@@ -167,24 +199,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       // Si solo hay 1 SIM, autoseleccionar sin mostrar modal
       if (_availableSimCards.length == 1) {
         final sim = _availableSimCards.first;
-        final carrierName =
-            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
-        final displayName =
-            (sim['displayName'] as String?)?.toLowerCase() ?? '';
+        final carrierName = (sim['carrierName'] as String?) ?? '';
+        final displayName = (sim['displayName'] as String?) ?? '';
 
-        // Detectar la operadora
-        String operadoraName;
-        if (carrierName.contains('entel') || displayName.contains('entel')) {
-          operadoraName = 'entel';
-        } else if (carrierName.contains('vivas') ||
-            displayName.contains('viva')) {
-          operadoraName = 'viva';
-        } else if (carrierName.contains('tigo') ||
-            displayName.contains('tigo')) {
-          operadoraName = 'tigo';
-        } else {
-          operadoraName = carrierName.isNotEmpty ? carrierName : 'desconocido';
-        }
+        // Detectar la operadora usando el método helper
+        final operadoraName = _detectOperador(carrierName, displayName);
 
         await _secureStorage.write(
           key: 'operadora_seleccionada',
@@ -267,231 +286,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  String _getUssdCode(String operadora) {
-    switch (operadora.toLowerCase()) {
-      case 'entel':
-        return '*105#';
-      case 'viva':
-        return '*555#';
-      case 'tigo':
-        return '*105#';
-      default:
-        return '*105#';
-    }
-  }
-
-  String _getPackagesUssdCode(String operadora) {
-    switch (operadora.toLowerCase()) {
-      case 'entel':
-        return '*10*1*1#';
-      case 'viva':
-        return '*121#'; // Ajusta según operadora
-      case 'tigo':
-        return '*121#'; // Ajusta según operadora
-      default:
-        return '*10*1*1#';
-    }
-  }
-
-  Future<List<Map<String, String>>> _fetchPackages() async {
-    if (_operadoraSeleccionada.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona una operadora primero'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return [];
-    }
-
-    // Verificar accesibilidad
-    final hasAccess = await _checkAccessibility();
-    if (!hasAccess) {
-      return [];
-    }
-
+  String _getUssdCodeForSaldo() {
     try {
-      final simCards = _availableSimCards;
-
-      if (simCards.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se encontraron tarjetas SIM'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return [];
-      }
-
-      // Buscar la SIM que corresponde a la operadora seleccionada
-      Map<String, dynamic>? selectedSim;
-      for (final sim in simCards) {
-        final carrierName =
-            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
-        final displayName =
-            (sim['displayName'] as String?)?.toLowerCase() ?? '';
-
-        if (_operadoraSeleccionada == 'entel' &&
-            (carrierName.contains('entel') || displayName.contains('entel'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'viva' &&
-            (carrierName.contains('vivas') || displayName.contains('viva'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'tigo' &&
-            (carrierName.contains('tigo') || displayName.contains('tigo'))) {
-          selectedSim = sim;
-          break;
-        } else if (carrierName.contains(_operadoraSeleccionada) ||
-            displayName.contains(_operadoraSeleccionada)) {
-          selectedSim = sim;
-          break;
-        }
-      }
-
-      selectedSim ??= simCards.first;
-
-      // Mostrar modal de carga
-      if (mounted) {
-        showMaterialModalBottomSheet<void>(
-          context: context,
-          isDismissible: false,
-          enableDrag: false,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return const ModalUssdResponse(
-              response: '',
-              isLoading: true,
-            );
-          },
-        );
-      }
-
-      // Ejecutar el código USSD para obtener la lista de paquetes
-      final packagesCode = _getPackagesUssdCode(_operadoraSeleccionada);
-      final subscriptionId = selectedSim['subscriptionId'] as int?;
-
-      print(
-        'Obteniendo paquetes con USSD $packagesCode con SIM: ${selectedSim['displayName']}',
+      final commands = UssdCommandService.getCategoryCommands(
+        _operadoraSeleccionada,
+        'saldo',
       );
-
-      final response = await UssdLauncher.sendUssdRequest(
-        ussdCode: packagesCode,
-        subscriptionId: subscriptionId ?? -1,
-      );
-
-      // Cerrar modal de carga
-      if (mounted) {
-        Navigator.of(context).pop();
+      if (commands.isNotEmpty) {
+        // Retorna el primer comando de saldo (consulta básica)
+        return commands.first.code;
       }
-
-      // Parsear la respuesta para extraer los paquetes
-      return _parsePackagesResponse(response ?? '');
-    } on PlatformException catch (e) {
-      // Cerrar modal de carga si está abierto
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-
-      if (mounted) {
-        String errorMessage = 'Error al obtener paquetes';
-        if (e.code == 'PERMISSION_DENIED') {
-          errorMessage = 'Permisos denegados';
-        } else if (e.code == 'USSD_FAILED') {
-          errorMessage = 'La consulta USSD falló';
-        } else {
-          errorMessage = e.message ?? 'Error desconocido';
-        }
-
-        await showMaterialModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return ModalUssdResponse(
-              response: errorMessage,
-            );
-          },
-        );
-      }
-      return [];
     } catch (e) {
-      // Cerrar modal de carga si está abierto
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-
-      if (mounted) {
-        await showMaterialModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return ModalUssdResponse(
-              response: 'Error inesperado: $e',
-            );
-          },
-        );
-      }
-      return [];
+      print('Error obteniendo comando de saldo: $e');
     }
+    // Fallback si no está configurado
+    return '*105#';
   }
 
-  List<Map<String, String>> _parsePackagesResponse(String response) {
-    // Este método parsea la respuesta del USSD para extraer los paquetes
-    // La estructura dependerá de cómo responda cada operadora
-    // Ejemplo: la respuesta podría ser algo como:
-    // "1. 200MB x Bs.2\n2. 350MB x Bs.3\n3. 500MB x Bs.5"
-
-    final packages = <Map<String, String>>[];
-
-    if (response.isEmpty) return packages;
-
-    final lines = response.split('\n');
-
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty) continue;
-
-      // Extraer el número de opción (ej: "1." de "1. 200MB x Bs.2")
-      final match = RegExp(r'^(\d+)\.\s*(.+)').firstMatch(trimmed);
-
-      if (match != null) {
-        final option = match.group(1) ?? '';
-        final description = match.group(2) ?? '';
-
-        // Mapear el option al código USSD correspondiente
-        String ussdCode = '';
-        if (_operadoraSeleccionada == 'entel') {
-          // Para Entel: *10*1*1*<option>*1#
-          ussdCode = '*10*1*1*$option*1#';
-        } else if (_operadoraSeleccionada == 'viva') {
-          // Ajusta según la operadora
-          ussdCode = '*10*1*1*$option*1#';
-        } else if (_operadoraSeleccionada == 'tigo') {
-          // Ajusta según la operadora
-          ussdCode = '*10*1*1*$option*1#';
-        }
-
-        packages.add({
-          'option': option,
-          'description': description,
-          'ussdCode': ussdCode,
-        });
-      }
-    }
-
-    return packages;
-  }
-
-  Future<void> _comprarPaquetes() async {
+  Future<void> _comprarPaqueteDirecto(String ussdCode) async {
     if (_operadoraSeleccionada.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona una operadora primero'),
-          backgroundColor: Colors.red,
-        ),
+      await showMaterialModalBottomSheet(
+        isDismissible: false,
+        enableDrag: false,
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pop(context);
+          });
+          return const ModalError(
+            error: 'Por favor, selecciona una operadora primero',
+          );
+        },
       );
       return;
     }
@@ -500,322 +326,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final hasPermissions = await _requestUssdPermissions();
     if (!hasPermissions) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Se requieren los permisos de teléfono para comprar paquetes',
-            ),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Configuración',
-              onPressed: openAppSettings,
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    // Obtener los paquetes disponibles
-    final packages = await _fetchPackages();
-
-    if (packages.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No se encontraron paquetes disponibles'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
-    // Mostrar modal para que el usuario seleccione un paquete
-    if (mounted) {
-      final selectedPackage =
-          await showMaterialModalBottomSheet<Map<String, String>>(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (context) {
-              return _buildPackagesSelectionModal(packages);
-            },
-          );
-
-      if (selectedPackage != null) {
-        // El usuario seleccionó un paquete, ejecutar el USSD
-        await _executeBuyPackageUssd(selectedPackage);
-      }
-    }
-  }
-
-  Widget _buildPackagesSelectionModal(List<Map<String, String>> packages) {
-    final responsive = Responsive.of(context);
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Selecciona un paquete',
-                style: TextStyle(
-                  fontSize: responsive.heightPercent(2),
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-            ),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: packages.length,
-                separatorBuilder: (context, index) => Divider(
-                  height: 1,
-                  color: Colors.grey.withOpacity(0.2),
-                ),
-                itemBuilder: (context, index) {
-                  final package = packages[index];
-                  return InkWell(
-                    onTap: () {
-                      Navigator.of(context).pop(package);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: responsive.widthPercent(10),
-                            height: responsive.widthPercent(10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                package['option'] ?? '',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              package['description'] ?? '',
-                              style: TextStyle(
-                                fontSize: responsive.heightPercent(1.6),
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancelar'),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _executeBuyPackageUssd(Map<String, String> package) async {
-    try {
-      final simCards = _availableSimCards;
-
-      if (simCards.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se encontraron tarjetas SIM'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Buscar la SIM que corresponde a la operadora seleccionada
-      Map<String, dynamic>? selectedSim;
-      for (final sim in simCards) {
-        final carrierName =
-            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
-        final displayName =
-            (sim['displayName'] as String?)?.toLowerCase() ?? '';
-
-        if (_operadoraSeleccionada == 'entel' &&
-            (carrierName.contains('entel') || displayName.contains('entel'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'viva' &&
-            (carrierName.contains('vivas') || displayName.contains('viva'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'tigo' &&
-            (carrierName.contains('tigo') || displayName.contains('tigo'))) {
-          selectedSim = sim;
-          break;
-        } else if (carrierName.contains(_operadoraSeleccionada) ||
-            displayName.contains(_operadoraSeleccionada)) {
-          selectedSim = sim;
-          break;
-        }
-      }
-
-      selectedSim ??= simCards.first;
-
-      // Mostrar modal de carga
-      if (mounted) {
-        showMaterialModalBottomSheet<void>(
-          context: context,
+        await showMaterialModalBottomSheet(
           isDismissible: false,
           enableDrag: false,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return const ModalUssdResponse(
-              response: '',
-              isLoading: true,
-            );
-          },
-        );
-      }
-
-      // Ejecutar el USSD del paquete seleccionado
-      final ussdCode = package['ussdCode'] ?? '*10*1*1#';
-      final subscriptionId = selectedSim['subscriptionId'] as int?;
-
-      print(
-        'Comprando paquete: ${package['description']} con USSD $ussdCode',
-      );
-
-      final response = await UssdLauncher.sendUssdRequest(
-        ussdCode: ussdCode,
-        subscriptionId: subscriptionId ?? -1,
-      );
-
-      // Cerrar modal de carga
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-
-      // Mostrar respuesta
-      if (mounted) {
-        await showMaterialModalBottomSheet<void>(
           context: context,
           backgroundColor: Colors.transparent,
           builder: (context) {
-            return ModalUssdResponse(
-              response: response ?? 'Paquete comprado exitosamente',
+            return const ModalError(
+              error: 'Por favor, selecciona una operadora primero',
+              funcion: openAppSettings,
+              isAction: true,
+              titleAction: 'Configuración',
             );
           },
-        );
-      }
-    } on PlatformException catch (e) {
-      // Cerrar modal de carga si está abierto
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-
-      if (mounted) {
-        String errorMessage = 'Error al comprar paquete';
-        if (e.code == 'PERMISSION_DENIED') {
-          errorMessage = 'Permisos denegados';
-        } else if (e.code == 'USSD_FAILED') {
-          errorMessage = 'La compra falló';
-        } else {
-          errorMessage = e.message ?? 'Error desconocido';
-        }
-
-        await showMaterialModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return ModalUssdResponse(
-              response: errorMessage,
-            );
-          },
-        );
-      }
-    } catch (e) {
-      // Cerrar modal de carga si está abierto
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-
-      if (mounted) {
-        await showMaterialModalBottomSheet<void>(
-          context: context,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return ModalUssdResponse(
-              response: 'Error inesperado: $e',
-            );
-          },
-        );
-      }
-    }
-  }
-
-  Future<void> _consultarSaldo() async {
-    if (_operadoraSeleccionada.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona una operadora primero'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Solicitar permisos USSD
-    final hasPermissions = await _requestUssdPermissions();
-    if (!hasPermissions) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Se requieren los permisos de teléfono para consultar saldo',
-            ),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Configuración',
-              onPressed: openAppSettings,
-            ),
-          ),
         );
       }
       return;
@@ -834,11 +357,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
       if (simCards.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se encontraron tarjetas SIM'),
-              backgroundColor: Colors.orange,
-            ),
+          await showMaterialModalBottomSheet(
+            isDismissible: false,
+            enableDrag: false,
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (context) {
+              Future.delayed(const Duration(seconds: 2), () {
+                Navigator.pop(context);
+              });
+              return const ModalError(
+                error: 'No hay tarjetas SIM disponibles',
+              );
+            },
           );
         }
         return;
@@ -847,26 +378,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       // Buscar la SIM que corresponde a la operadora seleccionada
       Map<String, dynamic>? selectedSim;
       for (final sim in simCards) {
-        final carrierName =
-            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
-        final displayName =
-            (sim['displayName'] as String?)?.toLowerCase() ?? '';
+        final carrierName = (sim['carrierName'] as String?) ?? '';
+        final displayName = (sim['displayName'] as String?) ?? '';
 
-        // Detectar si esta SIM corresponde a la operadora seleccionada
-        if (_operadoraSeleccionada == 'entel' &&
-            (carrierName.contains('entel') || displayName.contains('entel'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'viva' &&
-            (carrierName.contains('vivas') || displayName.contains('viva'))) {
-          selectedSim = sim;
-          break;
-        } else if (_operadoraSeleccionada == 'tigo' &&
-            (carrierName.contains('tigo') || displayName.contains('tigo'))) {
-          selectedSim = sim;
-          break;
-        } else if (carrierName.contains(_operadoraSeleccionada) ||
-            displayName.contains(_operadoraSeleccionada)) {
+        // Usar el método helper para detectar operador
+        if (_detectOperador(carrierName, displayName) ==
+            _operadoraSeleccionada) {
           selectedSim = sim;
           break;
         }
@@ -892,7 +409,191 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
 
       // Ejecutar el código USSD con la SIM seleccionada
-      final ussdCode = _getUssdCode(_operadoraSeleccionada);
+      final subscriptionId = selectedSim['subscriptionId'] as int?;
+
+      print(
+        'Ejecutando USSD $ussdCode con SIM: ${selectedSim['displayName']} (subscriptionId: $subscriptionId)',
+      );
+
+      final response = await UssdLauncher.sendUssdRequest(
+        ussdCode: ussdCode,
+        subscriptionId: subscriptionId ?? -1,
+      );
+
+      // Cerrar modal de carga
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar respuesta
+      if (mounted) {
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: response ?? 'Operación completada',
+            );
+          },
+        );
+      }
+    } on PlatformException catch (e) {
+      // Cerrar modal de carga si está abierto
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        // Manejar errores
+        String errorMessage = 'Error al comprar paquete';
+        if (e.code == 'PERMISSION_DENIED') {
+          errorMessage = 'Permisos denegados';
+        } else if (e.code == 'USSD_FAILED') {
+          errorMessage = 'La compra falló';
+        } else if (e.code == 'ACCESSIBILITY_NOT_ENABLED') {
+          errorMessage =
+              'Servicio de accesibilidad no habilitado correctamente';
+        } else {
+          errorMessage = e.message ?? 'Error desconocido';
+        }
+
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: errorMessage,
+            );
+          },
+        );
+      }
+    } catch (e) {
+      // Cerrar modal de carga si está abierto
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+
+      if (mounted) {
+        await showMaterialModalBottomSheet<void>(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return ModalUssdResponse(
+              response: 'Error desconocido: $e',
+            );
+          },
+        );
+      }
+    }
+  }
+
+  Future<void> _consultarSaldo() async {
+    if (_operadoraSeleccionada.isEmpty) {
+      await showMaterialModalBottomSheet(
+        isDismissible: false,
+        enableDrag: false,
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          Future.delayed(const Duration(seconds: 2), () {
+            Navigator.pop(context);
+          });
+          return const ModalError(
+            error: 'Por favor, selecciona una operadora primero',
+          );
+        },
+      );
+      return;
+    }
+
+    // Solicitar permisos USSD
+    final hasPermissions = await _requestUssdPermissions();
+    if (!hasPermissions) {
+      if (mounted) {
+        await showMaterialModalBottomSheet(
+          isDismissible: false,
+          enableDrag: false,
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return const ModalError(
+              error:
+                  'Se requieren los permisos de teléfono para consultar saldo',
+              funcion: openAppSettings,
+              isAction: true,
+              titleAction: 'Configuración',
+            );
+          },
+        );
+      }
+      return;
+    }
+
+    // Verificar accesibilidad
+    final hasAccess = await _checkAccessibility();
+    if (!hasAccess) {
+      return;
+    }
+
+    // Ejecutar USSD
+    try {
+      // Usar las SIMs ya detectadas
+      final simCards = _availableSimCards;
+
+      if (simCards.isEmpty) {
+        if (mounted) {
+          await showMaterialModalBottomSheet(
+            isDismissible: false,
+            enableDrag: false,
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (context) {
+              Future.delayed(const Duration(seconds: 2), () {
+                Navigator.pop(context);
+              });
+              return const ModalError(
+                error: 'No se encontraron tarjetas SIM',
+              );
+            },
+          );
+        }
+        return;
+      }
+
+      // Buscar la SIM que corresponde a la operadora seleccionada
+      Map<String, dynamic>? selectedSim;
+      for (final sim in simCards) {
+        final carrierName = (sim['carrierName'] as String?) ?? '';
+        final displayName = (sim['displayName'] as String?) ?? '';
+
+        if (_detectOperador(carrierName, displayName) ==
+            _operadoraSeleccionada) {
+          selectedSim = sim;
+          break;
+        }
+      }
+
+      // Si no se encontró la SIM específica, usar la primera
+      selectedSim ??= simCards.first;
+
+      // Mostrar modal de carga
+      if (mounted) {
+        showMaterialModalBottomSheet<void>(
+          context: context,
+          isDismissible: false,
+          enableDrag: false,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            return const ModalUssdResponse(
+              response: '',
+              isLoading: true,
+            );
+          },
+        );
+      }
+
+      // Ejecutar el código USSD con la SIM seleccionada
+      final ussdCode = _getUssdCodeForSaldo();
       final subscriptionId = selectedSim['subscriptionId'] as int?;
 
       print(
@@ -1088,9 +789,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           operadora: _operadoraSeleccionada,
           onConsultar: _consultarSaldo,
+          onComprarPaquete: _comprarPaqueteDirecto,
           // Solo permitir cambiar línea si hay más de 1 SIM
           onChange: _availableSimCards.length > 1 ? _showOperadoraModal : null,
-          onComprar: _comprarPaquetes,
         ),
       ),
       body: SafeArea(

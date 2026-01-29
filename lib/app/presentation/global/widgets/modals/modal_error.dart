@@ -4,16 +4,22 @@ import 'package:gw_sms/app/presentation/global/theme/colors.dart';
 import 'package:gw_sms/app/presentation/global/theme/padding.dart';
 import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
+import 'package:gw_sms/app/presentation/global/widgets/custom_button_box.dart';
 
 class ModalError extends StatelessWidget {
+  const ModalError({
+    required this.error,
+    super.key,
+    this.height,
+    this.funcion,
+    this.isAction = false,
+    this.titleAction = 'Confirmar',
+  });
   final String error;
   final double? height;
-
-  const ModalError({
-    super.key,
-    required this.error,
-    this.height,
-  });
+  final bool? isAction;
+  final void Function()? funcion;
+  final String titleAction;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +28,7 @@ class ModalError extends StatelessWidget {
       padding: const EdgeInsets.all(appPadding),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(10),
           topRight: Radius.circular(10),
         ),
@@ -53,7 +59,21 @@ class ModalError extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(
+            const SizedBox(
+              height: 20,
+            ),
+            if (isAction ?? false)
+              CustomButtonBoxStyle(
+                title: titleAction,
+                funcion: funcion,
+                color: violet,
+                iconActive: true,
+                icon: 'paper.svg',
+                fontSize: responsive.heightPercent(1.4),
+                sizeHeight: responsive.widthPercent(10),
+                sizeWidth: responsive.widthPercent(100),
+              ),
+            const SizedBox(
               height: 20,
             ),
           ],
