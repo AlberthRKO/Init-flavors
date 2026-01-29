@@ -102,6 +102,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     // Solicitar permisos necesarios para USSD
     final Map<Permission, PermissionStatus> statuses = await [
+      Permission.sms,
       Permission.phone,
     ].request();
 

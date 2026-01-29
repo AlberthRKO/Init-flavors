@@ -302,6 +302,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_background_messenger:
+    dependency: "direct main"
+    description:
+      name: flutter_background_messenger
+      sha256: "8f6c14348e10780b9a23541e8e6c6dcc20404da3a73cca0c0726012171a6e88f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   flutter_cache_manager:
     dependency: transitive
     description:
@@ -866,6 +874,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  sms_sender:
+    dependency: "direct main"
+    description:
+      name: sms_sender
+      sha256: "66256fa78ce6dadfc7878b2e0790149fd0b5324ceb974c5f5145299e862992aa"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.5"
   source_gen:
     dependency: transitive
     description:

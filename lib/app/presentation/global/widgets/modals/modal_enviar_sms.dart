@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_background_messenger/flutter_background_messenger.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gw_sms/app/presentation/global/controllers/theme_controller.dart';
@@ -9,8 +10,11 @@ import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:gw_sms/app/presentation/global/widgets/circle_button.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_button_box.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_heading.dart';
+import 'package:gw_sms/app/presentation/global/widgets/modals/modal_success.dart';
 import 'package:gw_sms/app/presentation/global/widgets/text_form_custom.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:provider/provider.dart';
+import 'package:sms_sender/sms_sender.dart';
 
 class ModalEnviarSMS extends StatefulWidget {
   const ModalEnviarSMS({
@@ -28,6 +32,80 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
   String numero = '';
   String countryCode = '+591';
   TimeOfDay? hora;
+  int? selectedSimSlot; // 0 = SIM 1, 1 = SIM 2
+
+  final _messenger = FlutterBackgroundMessenger();
+  final _formKey = GlobalKey<FormState>();
+  final _phoneController = TextEditingController();
+  final _messageController = TextEditingController();
+  String _status = '';
+
+  @override
+  void initState() {
+    super.initState();
+    selectedSimSlot = 0; // Por defecto usar SIM 1
+  }
+
+  Future<void> _sendSMS() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      fetching = true;
+    });
+
+    try {
+      // Usar sms_sender para envío con SIM específico
+      await SmsSender.sendSms(
+        phoneNumber: _phoneController.text,
+        message: _messageController.text,
+        simSlot: selectedSimSlot ?? 0,
+      );
+
+      setState(() {
+        _status = 'SMS sent successfully!';
+      });
+
+      // Limpiar campos después de enviar
+      _phoneController.clear();
+      _messageController.clear();
+      setState(() {
+        numero = '';
+        message = '';
+      });
+
+      // Mostrar modal de éxito
+      if (mounted) {
+        showMaterialModalBottomSheet(
+          isDismissible: false,
+          enableDrag: false,
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                Navigator.pop(context);
+                Navigator.pop(context, true);
+              }
+            });
+            return const ModalSuccessAnimation(
+              messsage: 'SMS enviado correctamente',
+              lottie: 'check.json',
+            );
+          },
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _status = 'Error: $e';
+      });
+    } finally {
+      setState(() {
+        fetching = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +114,7 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
     final responsive = Responsive.of(context);
     final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     return Form(
+      key: _formKey,
       child: Builder(
         builder: (context) {
           return AbsorbPointer(
@@ -85,7 +164,40 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
                     Column(
                       children: [
                         const SizedBox(height: 20),
+                        // Selector de SIM
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(context).primaryColor,
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButton<int>(
+                            isExpanded: true,
+                            underline: const SizedBox(),
+                            value: selectedSimSlot,
+                            onChanged: (int? newValue) {
+                              setState(() {
+                                selectedSimSlot = newValue;
+                              });
+                            },
+                            items: const [
+                              DropdownMenuItem(
+                                value: 0,
+                                child: Text('SIM 1'),
+                              ),
+                              DropdownMenuItem(
+                                value: 1,
+                                child: Text('SIM 2'),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
                         TextFormCustom(
+                          controller: _phoneController,
                           onChanged: (text) {
                             setState(() {
                               numero = text;
@@ -117,6 +229,7 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
                         ),
                         const SizedBox(height: 10),
                         TextFormCustom(
+                          controller: _messageController,
                           onChanged: (text) {
                             setState(() {
                               message = text;
@@ -147,10 +260,7 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
                     ),
                     CustomButtonBoxStyle(
                       title: 'Enviar SMS',
-                      funcion: () {
-                        final isValid = Form.of(context).validate();
-                        if (isValid) {}
-                      },
+                      funcion: _sendSMS,
                       color: violet,
                       iconActive: true,
                       icon: 'paper.svg',
@@ -170,6 +280,13 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _messageController.dispose();
+    super.dispose();
   }
 
   /* Future<void> _submit(
