@@ -25,7 +25,7 @@ dependencies:
   go_router: ^17.0.1
   http: ^1.6.0
   intl: ^0.20.2
-  json_annotation: ^4.9.0
+  json_annotation: ^4.10.0
   lottie: ^3.3.2
   modal_bottom_sheet: ^3.0.0
   path_provider: ^2.1.5
