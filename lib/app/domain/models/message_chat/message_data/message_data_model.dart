@@ -27,6 +27,8 @@ abstract class MessageDataModel with _$MessageDataModel {
     String? thumbnailFile,
     String? urlFile,
     dynamic autoMessage,
+    @Default(false) bool isEntregado,
+    @Default(false) bool isEnviando,
   }) = _MessageDataModel;
 
   factory MessageDataModel.fromJson(Map<String, dynamic> json) =>

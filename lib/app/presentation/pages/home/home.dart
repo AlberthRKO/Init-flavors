@@ -12,6 +12,7 @@ import 'package:gw_sms/app/data/services/socket/web_socket_service.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
 import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
+import 'package:gw_sms/app/domain/services/sms_service.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/utils/funciones.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
@@ -132,6 +133,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             // Mensajes del servidor siempre se agregan
             messagesData.insert(0, newMessage);
             print('Mensaje del servidor agregado: ${newMessage.id}');
+
+            // 🔔 Enviar SMS automáticamente cuando llegue un mensaje del servidor
+            _enviarSmsAutomatico(newMessage);
           }
         }
       });
@@ -388,6 +392,122 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
     // Fallback si no está configurado
     return '*105#';
+  }
+
+  /// Envía un SMS automáticamente cuando llega un mensaje del servidor
+  Future<void> _enviarSmsAutomatico(MessageDataModel message) async {
+    try {
+      // Obtener el CI del sender
+      final senderCI = message.sender?.ci;
+      final messageText = message.message;
+
+      // Validar que tenemos los datos necesarios
+      if (senderCI == null || senderCI.isEmpty) {
+        print('❌ No hay CI del sender para enviar SMS');
+        return;
+      }
+
+      if (messageText == null || messageText.isEmpty) {
+        print('❌ No hay contenido de mensaje para enviar');
+        return;
+      }
+
+      // Construir el número telefónico
+      const String phoneNumber = '+59163354864'; // Bolivia +591
+
+      print('Iniciando envío automático de SMS');
+      print('Destinatario CI: $senderCI');
+      print('Número: $phoneNumber');
+      print('Mensaje: $messageText');
+
+      //  Marcar como enviando (mostrar CircleProgressIndicator)
+      if (mounted) {
+        setState(() {
+          final index = messagesData.indexWhere((msg) => msg.id == message.id);
+          if (index != -1) {
+            messagesData[index] = messagesData[index].copyWith(
+              isEnviando: true,
+              isEntregado: false,
+            );
+          }
+        });
+      }
+
+      //  Detectar la SIM correcta según la operadora seleccionada
+      int simSlot = 0; // Por defecto
+
+      if (_operadoraSeleccionada.isNotEmpty && _availableSimCards.isNotEmpty) {
+        print('Operadora seleccionada: $_operadoraSeleccionada');
+
+        // Buscar la SIM que corresponde a la operadora seleccionada
+        for (final sim in _availableSimCards) {
+          final carrierName =
+              (sim['carrierName'] as String?)?.toLowerCase() ?? '';
+          final displayName =
+              (sim['displayName'] as String?)?.toLowerCase() ?? '';
+
+          // Detectar si es la operadora seleccionada
+          if (_detectOperador(carrierName, displayName) ==
+              _operadoraSeleccionada) {
+            final slotIndex = sim['slotIndex'] as int?;
+            if (slotIndex != null) {
+              simSlot = slotIndex;
+              print('SIM detectada: ${sim['displayName']} (Slot: $simSlot)');
+              break;
+            }
+          }
+        }
+      } else {
+        print('Operadora no seleccionada, usando SIM slot 0');
+      }
+
+      // Enviar el SMS usando el servicio
+      final smsSent = await SmsService.sendSms(
+        phoneNumber: phoneNumber,
+        message: messageText,
+        simSlot: simSlot,
+      );
+
+      // Actualizar el estado del mensaje según el resultado
+      if (mounted) {
+        setState(() {
+          final index = messagesData.indexWhere((msg) => msg.id == message.id);
+          if (index != -1) {
+            if (smsSent) {
+              // SMS enviado correctamente - mostrar check
+              messagesData[index] = messagesData[index].copyWith(
+                isEnviando: false,
+                isEntregado: true,
+              );
+              print(
+                'SMS enviado automáticamente a $phoneNumber con SIM slot $simSlot',
+              );
+            } else {
+              // Error al enviar - volver a mostrar usuario
+              messagesData[index] = messagesData[index].copyWith(
+                isEnviando: false,
+                isEntregado: false,
+              );
+              print('No se pudo enviar el SMS automáticamente');
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print('Error en envío automático de SMS: $e');
+      // En caso de error, actualizar el estado
+      if (mounted) {
+        setState(() {
+          final index = messagesData.indexWhere((msg) => msg.id == message.id);
+          if (index != -1) {
+            messagesData[index] = messagesData[index].copyWith(
+              isEnviando: false,
+              isEntregado: false,
+            );
+          }
+        });
+      }
+    }
   }
 
   Future<void> _comprarPaqueteDirecto(String ussdCode) async {
@@ -860,7 +980,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                             child: Row(
                               children: [
-                                // Avatar con iniciales del número
+                                // Avatar con estado de entrega
                                 Container(
                                   width: responsive.widthPercent(12),
                                   height: responsive.widthPercent(12),
@@ -873,11 +993,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Center(
-                                    child: SvgPicture.asset(
-                                      'assets/images/icons/user_icon.svg',
-                                      width: responsive.heightPercent(3),
-                                      color: Colors.white,
-                                    ),
+                                    child: chat.isEnviando
+                                        ? SizedBox(
+                                            width: responsive.heightPercent(
+                                              2.5,
+                                            ),
+                                            height: responsive.heightPercent(
+                                              2.5,
+                                            ),
+                                            child:
+                                                const CircularProgressIndicator(
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(
+                                                        Colors.white,
+                                                      ),
+                                                  strokeWidth: 2,
+                                                ),
+                                          )
+                                        : chat.isEntregado
+                                        ? SvgPicture.asset(
+                                            'assets/images/icons/check.svg',
+                                            width: responsive.heightPercent(
+                                              2.5,
+                                            ),
+                                            color: Colors.white,
+                                          )
+                                        : SvgPicture.asset(
+                                            'assets/images/icons/user_icon.svg',
+                                            width: responsive.heightPercent(3),
+                                            color: Colors.white,
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),

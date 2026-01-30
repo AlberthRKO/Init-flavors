@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MessageDataModel {
 
- int? get roomId; DateTime? get updatedAt; DateTime? get createdAt; String? get message; bool? get visto; bool? get multimedia; SenderModel? get sender; bool? get esCliente; String? get appChatId; String? get chatId; String? get id; MessageTypeModel? get messageType; MessageResponseModel? get response; MessageDataAditionalModel? get dataAdicional; String? get thumbnailFile; String? get urlFile; dynamic get autoMessage;
+ int? get roomId; DateTime? get updatedAt; DateTime? get createdAt; String? get message; bool? get visto; bool? get multimedia; SenderModel? get sender; bool? get esCliente; String? get appChatId; String? get chatId; String? get id; MessageTypeModel? get messageType; MessageResponseModel? get response; MessageDataAditionalModel? get dataAdicional; String? get thumbnailFile; String? get urlFile; dynamic get autoMessage; bool get isEntregado; bool get isEnviando;
 /// Create a copy of MessageDataModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $MessageDataModelCopyWith<MessageDataModel> get copyWith => _$MessageDataModelCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageDataModel&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.message, message) || other.message == message)&&(identical(other.visto, visto) || other.visto == visto)&&(identical(other.multimedia, multimedia) || other.multimedia == multimedia)&&(identical(other.sender, sender) || other.sender == sender)&&(identical(other.esCliente, esCliente) || other.esCliente == esCliente)&&(identical(other.appChatId, appChatId) || other.appChatId == appChatId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.id, id) || other.id == id)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.response, response) || other.response == response)&&(identical(other.dataAdicional, dataAdicional) || other.dataAdicional == dataAdicional)&&(identical(other.thumbnailFile, thumbnailFile) || other.thumbnailFile == thumbnailFile)&&(identical(other.urlFile, urlFile) || other.urlFile == urlFile)&&const DeepCollectionEquality().equals(other.autoMessage, autoMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageDataModel&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.message, message) || other.message == message)&&(identical(other.visto, visto) || other.visto == visto)&&(identical(other.multimedia, multimedia) || other.multimedia == multimedia)&&(identical(other.sender, sender) || other.sender == sender)&&(identical(other.esCliente, esCliente) || other.esCliente == esCliente)&&(identical(other.appChatId, appChatId) || other.appChatId == appChatId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.id, id) || other.id == id)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.response, response) || other.response == response)&&(identical(other.dataAdicional, dataAdicional) || other.dataAdicional == dataAdicional)&&(identical(other.thumbnailFile, thumbnailFile) || other.thumbnailFile == thumbnailFile)&&(identical(other.urlFile, urlFile) || other.urlFile == urlFile)&&const DeepCollectionEquality().equals(other.autoMessage, autoMessage)&&(identical(other.isEntregado, isEntregado) || other.isEntregado == isEntregado)&&(identical(other.isEnviando, isEnviando) || other.isEnviando == isEnviando));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,roomId,updatedAt,createdAt,message,visto,multimedia,sender,esCliente,appChatId,chatId,id,messageType,response,dataAdicional,thumbnailFile,urlFile,const DeepCollectionEquality().hash(autoMessage));
+int get hashCode => Object.hashAll([runtimeType,roomId,updatedAt,createdAt,message,visto,multimedia,sender,esCliente,appChatId,chatId,id,messageType,response,dataAdicional,thumbnailFile,urlFile,const DeepCollectionEquality().hash(autoMessage),isEntregado,isEnviando]);
 
 @override
 String toString() {
-  return 'MessageDataModel(roomId: $roomId, updatedAt: $updatedAt, createdAt: $createdAt, message: $message, visto: $visto, multimedia: $multimedia, sender: $sender, esCliente: $esCliente, appChatId: $appChatId, chatId: $chatId, id: $id, messageType: $messageType, response: $response, dataAdicional: $dataAdicional, thumbnailFile: $thumbnailFile, urlFile: $urlFile, autoMessage: $autoMessage)';
+  return 'MessageDataModel(roomId: $roomId, updatedAt: $updatedAt, createdAt: $createdAt, message: $message, visto: $visto, multimedia: $multimedia, sender: $sender, esCliente: $esCliente, appChatId: $appChatId, chatId: $chatId, id: $id, messageType: $messageType, response: $response, dataAdicional: $dataAdicional, thumbnailFile: $thumbnailFile, urlFile: $urlFile, autoMessage: $autoMessage, isEntregado: $isEntregado, isEnviando: $isEnviando)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $MessageDataModelCopyWith<$Res>  {
   factory $MessageDataModelCopyWith(MessageDataModel value, $Res Function(MessageDataModel) _then) = _$MessageDataModelCopyWithImpl;
 @useResult
 $Res call({
- int? roomId, DateTime? updatedAt, DateTime? createdAt, String? message, bool? visto, bool? multimedia, SenderModel? sender, bool? esCliente, String? appChatId, String? chatId, String? id, MessageTypeModel? messageType, MessageResponseModel? response, MessageDataAditionalModel? dataAdicional, String? thumbnailFile, String? urlFile, dynamic autoMessage
+ int? roomId, DateTime? updatedAt, DateTime? createdAt, String? message, bool? visto, bool? multimedia, SenderModel? sender, bool? esCliente, String? appChatId, String? chatId, String? id, MessageTypeModel? messageType, MessageResponseModel? response, MessageDataAditionalModel? dataAdicional, String? thumbnailFile, String? urlFile, dynamic autoMessage, bool isEntregado, bool isEnviando
 });
 
 
@@ -65,7 +65,7 @@ class _$MessageDataModelCopyWithImpl<$Res>
 
 /// Create a copy of MessageDataModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? roomId = freezed,Object? updatedAt = freezed,Object? createdAt = freezed,Object? message = freezed,Object? visto = freezed,Object? multimedia = freezed,Object? sender = freezed,Object? esCliente = freezed,Object? appChatId = freezed,Object? chatId = freezed,Object? id = freezed,Object? messageType = freezed,Object? response = freezed,Object? dataAdicional = freezed,Object? thumbnailFile = freezed,Object? urlFile = freezed,Object? autoMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? roomId = freezed,Object? updatedAt = freezed,Object? createdAt = freezed,Object? message = freezed,Object? visto = freezed,Object? multimedia = freezed,Object? sender = freezed,Object? esCliente = freezed,Object? appChatId = freezed,Object? chatId = freezed,Object? id = freezed,Object? messageType = freezed,Object? response = freezed,Object? dataAdicional = freezed,Object? thumbnailFile = freezed,Object? urlFile = freezed,Object? autoMessage = freezed,Object? isEntregado = null,Object? isEnviando = null,}) {
   return _then(_self.copyWith(
 roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
 as int?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -84,7 +84,9 @@ as MessageResponseModel?,dataAdicional: freezed == dataAdicional ? _self.dataAdi
 as MessageDataAditionalModel?,thumbnailFile: freezed == thumbnailFile ? _self.thumbnailFile : thumbnailFile // ignore: cast_nullable_to_non_nullable
 as String?,urlFile: freezed == urlFile ? _self.urlFile : urlFile // ignore: cast_nullable_to_non_nullable
 as String?,autoMessage: freezed == autoMessage ? _self.autoMessage : autoMessage // ignore: cast_nullable_to_non_nullable
-as dynamic,
+as dynamic,isEntregado: null == isEntregado ? _self.isEntregado : isEntregado // ignore: cast_nullable_to_non_nullable
+as bool,isEnviando: null == isEnviando ? _self.isEnviando : isEnviando // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of MessageDataModel
@@ -217,10 +219,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage,  bool isEntregado,  bool isEnviando)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessageDataModel() when $default != null:
-return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage);case _:
+return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage,_that.isEntregado,_that.isEnviando);case _:
   return orElse();
 
 }
@@ -238,10 +240,10 @@ return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage,  bool isEntregado,  bool isEnviando)  $default,) {final _that = this;
 switch (_that) {
 case _MessageDataModel():
-return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage);case _:
+return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage,_that.isEntregado,_that.isEnviando);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -258,10 +260,10 @@ return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int? roomId,  DateTime? updatedAt,  DateTime? createdAt,  String? message,  bool? visto,  bool? multimedia,  SenderModel? sender,  bool? esCliente,  String? appChatId,  String? chatId,  String? id,  MessageTypeModel? messageType,  MessageResponseModel? response,  MessageDataAditionalModel? dataAdicional,  String? thumbnailFile,  String? urlFile,  dynamic autoMessage,  bool isEntregado,  bool isEnviando)?  $default,) {final _that = this;
 switch (_that) {
 case _MessageDataModel() when $default != null:
-return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage);case _:
+return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that.visto,_that.multimedia,_that.sender,_that.esCliente,_that.appChatId,_that.chatId,_that.id,_that.messageType,_that.response,_that.dataAdicional,_that.thumbnailFile,_that.urlFile,_that.autoMessage,_that.isEntregado,_that.isEnviando);case _:
   return null;
 
 }
@@ -273,7 +275,7 @@ return $default(_that.roomId,_that.updatedAt,_that.createdAt,_that.message,_that
 @JsonSerializable()
 
 class _MessageDataModel implements MessageDataModel {
-   _MessageDataModel({this.roomId, this.updatedAt, this.createdAt, this.message, this.visto, this.multimedia, this.sender, this.esCliente, this.appChatId, this.chatId, this.id, this.messageType, this.response, this.dataAdicional, this.thumbnailFile, this.urlFile, this.autoMessage});
+   _MessageDataModel({this.roomId, this.updatedAt, this.createdAt, this.message, this.visto, this.multimedia, this.sender, this.esCliente, this.appChatId, this.chatId, this.id, this.messageType, this.response, this.dataAdicional, this.thumbnailFile, this.urlFile, this.autoMessage, this.isEntregado = false, this.isEnviando = false});
   factory _MessageDataModel.fromJson(Map<String, dynamic> json) => _$MessageDataModelFromJson(json);
 
 @override final  int? roomId;
@@ -293,6 +295,8 @@ class _MessageDataModel implements MessageDataModel {
 @override final  String? thumbnailFile;
 @override final  String? urlFile;
 @override final  dynamic autoMessage;
+@override@JsonKey() final  bool isEntregado;
+@override@JsonKey() final  bool isEnviando;
 
 /// Create a copy of MessageDataModel
 /// with the given fields replaced by the non-null parameter values.
@@ -307,16 +311,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessageDataModel&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.message, message) || other.message == message)&&(identical(other.visto, visto) || other.visto == visto)&&(identical(other.multimedia, multimedia) || other.multimedia == multimedia)&&(identical(other.sender, sender) || other.sender == sender)&&(identical(other.esCliente, esCliente) || other.esCliente == esCliente)&&(identical(other.appChatId, appChatId) || other.appChatId == appChatId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.id, id) || other.id == id)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.response, response) || other.response == response)&&(identical(other.dataAdicional, dataAdicional) || other.dataAdicional == dataAdicional)&&(identical(other.thumbnailFile, thumbnailFile) || other.thumbnailFile == thumbnailFile)&&(identical(other.urlFile, urlFile) || other.urlFile == urlFile)&&const DeepCollectionEquality().equals(other.autoMessage, autoMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessageDataModel&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.message, message) || other.message == message)&&(identical(other.visto, visto) || other.visto == visto)&&(identical(other.multimedia, multimedia) || other.multimedia == multimedia)&&(identical(other.sender, sender) || other.sender == sender)&&(identical(other.esCliente, esCliente) || other.esCliente == esCliente)&&(identical(other.appChatId, appChatId) || other.appChatId == appChatId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.id, id) || other.id == id)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.response, response) || other.response == response)&&(identical(other.dataAdicional, dataAdicional) || other.dataAdicional == dataAdicional)&&(identical(other.thumbnailFile, thumbnailFile) || other.thumbnailFile == thumbnailFile)&&(identical(other.urlFile, urlFile) || other.urlFile == urlFile)&&const DeepCollectionEquality().equals(other.autoMessage, autoMessage)&&(identical(other.isEntregado, isEntregado) || other.isEntregado == isEntregado)&&(identical(other.isEnviando, isEnviando) || other.isEnviando == isEnviando));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,roomId,updatedAt,createdAt,message,visto,multimedia,sender,esCliente,appChatId,chatId,id,messageType,response,dataAdicional,thumbnailFile,urlFile,const DeepCollectionEquality().hash(autoMessage));
+int get hashCode => Object.hashAll([runtimeType,roomId,updatedAt,createdAt,message,visto,multimedia,sender,esCliente,appChatId,chatId,id,messageType,response,dataAdicional,thumbnailFile,urlFile,const DeepCollectionEquality().hash(autoMessage),isEntregado,isEnviando]);
 
 @override
 String toString() {
-  return 'MessageDataModel(roomId: $roomId, updatedAt: $updatedAt, createdAt: $createdAt, message: $message, visto: $visto, multimedia: $multimedia, sender: $sender, esCliente: $esCliente, appChatId: $appChatId, chatId: $chatId, id: $id, messageType: $messageType, response: $response, dataAdicional: $dataAdicional, thumbnailFile: $thumbnailFile, urlFile: $urlFile, autoMessage: $autoMessage)';
+  return 'MessageDataModel(roomId: $roomId, updatedAt: $updatedAt, createdAt: $createdAt, message: $message, visto: $visto, multimedia: $multimedia, sender: $sender, esCliente: $esCliente, appChatId: $appChatId, chatId: $chatId, id: $id, messageType: $messageType, response: $response, dataAdicional: $dataAdicional, thumbnailFile: $thumbnailFile, urlFile: $urlFile, autoMessage: $autoMessage, isEntregado: $isEntregado, isEnviando: $isEnviando)';
 }
 
 
@@ -327,7 +331,7 @@ abstract mixin class _$MessageDataModelCopyWith<$Res> implements $MessageDataMod
   factory _$MessageDataModelCopyWith(_MessageDataModel value, $Res Function(_MessageDataModel) _then) = __$MessageDataModelCopyWithImpl;
 @override @useResult
 $Res call({
- int? roomId, DateTime? updatedAt, DateTime? createdAt, String? message, bool? visto, bool? multimedia, SenderModel? sender, bool? esCliente, String? appChatId, String? chatId, String? id, MessageTypeModel? messageType, MessageResponseModel? response, MessageDataAditionalModel? dataAdicional, String? thumbnailFile, String? urlFile, dynamic autoMessage
+ int? roomId, DateTime? updatedAt, DateTime? createdAt, String? message, bool? visto, bool? multimedia, SenderModel? sender, bool? esCliente, String? appChatId, String? chatId, String? id, MessageTypeModel? messageType, MessageResponseModel? response, MessageDataAditionalModel? dataAdicional, String? thumbnailFile, String? urlFile, dynamic autoMessage, bool isEntregado, bool isEnviando
 });
 
 
@@ -344,7 +348,7 @@ class __$MessageDataModelCopyWithImpl<$Res>
 
 /// Create a copy of MessageDataModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? roomId = freezed,Object? updatedAt = freezed,Object? createdAt = freezed,Object? message = freezed,Object? visto = freezed,Object? multimedia = freezed,Object? sender = freezed,Object? esCliente = freezed,Object? appChatId = freezed,Object? chatId = freezed,Object? id = freezed,Object? messageType = freezed,Object? response = freezed,Object? dataAdicional = freezed,Object? thumbnailFile = freezed,Object? urlFile = freezed,Object? autoMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? roomId = freezed,Object? updatedAt = freezed,Object? createdAt = freezed,Object? message = freezed,Object? visto = freezed,Object? multimedia = freezed,Object? sender = freezed,Object? esCliente = freezed,Object? appChatId = freezed,Object? chatId = freezed,Object? id = freezed,Object? messageType = freezed,Object? response = freezed,Object? dataAdicional = freezed,Object? thumbnailFile = freezed,Object? urlFile = freezed,Object? autoMessage = freezed,Object? isEntregado = null,Object? isEnviando = null,}) {
   return _then(_MessageDataModel(
 roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
 as int?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -363,7 +367,9 @@ as MessageResponseModel?,dataAdicional: freezed == dataAdicional ? _self.dataAdi
 as MessageDataAditionalModel?,thumbnailFile: freezed == thumbnailFile ? _self.thumbnailFile : thumbnailFile // ignore: cast_nullable_to_non_nullable
 as String?,urlFile: freezed == urlFile ? _self.urlFile : urlFile // ignore: cast_nullable_to_non_nullable
 as String?,autoMessage: freezed == autoMessage ? _self.autoMessage : autoMessage // ignore: cast_nullable_to_non_nullable
-as dynamic,
+as dynamic,isEntregado: null == isEntregado ? _self.isEntregado : isEntregado // ignore: cast_nullable_to_non_nullable
+as bool,isEnviando: null == isEnviando ? _self.isEnviando : isEnviando // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

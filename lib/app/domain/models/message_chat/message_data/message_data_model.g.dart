@@ -40,6 +40,8 @@ _MessageDataModel _$MessageDataModelFromJson(
   thumbnailFile: json['thumbnailFile'] as String?,
   urlFile: json['urlFile'] as String?,
   autoMessage: json['autoMessage'],
+  isEntregado: json['isEntregado'] as bool? ?? false,
+  isEnviando: json['isEnviando'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$MessageDataModelToJson(_MessageDataModel instance) =>
@@ -61,4 +63,6 @@ Map<String, dynamic> _$MessageDataModelToJson(_MessageDataModel instance) =>
       'thumbnailFile': instance.thumbnailFile,
       'urlFile': instance.urlFile,
       'autoMessage': instance.autoMessage,
+      'isEntregado': instance.isEntregado,
+      'isEnviando': instance.isEnviando,
     };
