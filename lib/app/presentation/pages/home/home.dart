@@ -1,5 +1,6 @@
 // ignore_for_file: inference_failure_on_function_invocation
 
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
@@ -7,7 +8,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:gw_sms/app/data/services/socket/web_socket_service.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
+import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/utils/funciones.dart';
@@ -57,6 +60,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _hasRequestedPhonePermission = false;
   List<Map<String, dynamic>> _availableSimCards = [];
 
+  final List<MessageDataModel> messagesData = [];
+  late final WebSocketService2 _socketService2;
+  StreamSubscription? _messageSubscription;
+  StreamSubscription? _sentMessageSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +73,84 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
+    _socketService2 = WebSocketService2();
+    _setupWebSocketListeners();
+    _socketService2.addListener(_onWebSocketStatusChange);
+  }
+
+  void _setupWebSocketListeners() {
+    // Escuchar cambios de estado
+    _socketService2.addListener(_onWebSocketStatusChange);
+
+    // Escuchar mensajes entrantes
+    _messageSubscription = _socketService2.messageStream.listen((message) {
+      final newMessage = MessageDataModel.fromJson(
+        message['message'] as Map<String, dynamic>,
+      );
+
+      setState(() {
+        // Si el mensaje tiene un response (calificación), buscar el mensaje original y actualizarlo
+        if (newMessage.response != null) {
+          // Buscar el mensaje original por ID y actualizarlo con la calificación
+          final int index = messagesData.indexWhere(
+            (msg) => msg.id == newMessage.id,
+          );
+          if (index != -1) {
+            // Actualizar el mensaje existente con la calificación
+            messagesData[index] = newMessage;
+            print('Mensaje actualizado con calificación: ${newMessage.id}');
+          } else {
+            // Si no se encuentra, agregarlo como mensaje nuevo
+            messagesData.insert(0, newMessage);
+            print(
+              'Mensaje con calificación agregado como nuevo: ${newMessage.id}',
+            );
+          }
+        } else {
+          // Es un mensaje nuevo sin calificación
+          if (newMessage.esCliente ?? false) {
+            // Solo agregamos mensajes del cliente si no hay duplicados
+            final bool alreadyExists = messagesData.any(
+              (msg) =>
+                  msg.message == newMessage.message &&
+                  (msg.esCliente ?? false) &&
+                  (msg.createdAt
+                              ?.difference(
+                                newMessage.createdAt ?? DateTime.now(),
+                              )
+                              .abs()
+                              .inSeconds ??
+                          0) <
+                      5,
+            );
+
+            if (!alreadyExists) {
+              messagesData.insert(0, newMessage);
+              print('Mensaje del cliente agregado: ${newMessage.id}');
+            }
+          } else {
+            // Mensajes del servidor siempre se agregan
+            messagesData.insert(0, newMessage);
+            print('Mensaje del servidor agregado: ${newMessage.id}');
+          }
+        }
+      });
+    });
+
+    // Escuchar confirmaciones de mensajes enviados (sendMessage)
+    _sentMessageSubscription = _socketService2.sentMessageStream.listen((
+      sentData,
+    ) {
+      print('Confirmación de mensaje enviado recibida: $sentData');
+      // Aquí puedes agregar lógica adicional si necesitas procesar las confirmaciones
+      // Por ejemplo, marcar mensajes como entregados, actualizar estados, etc.
+    });
+  }
+
+  void _onWebSocketStatusChange() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _initializeApp() async {
@@ -673,89 +759,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
-  List<SmsChat> _getFakeChats() {
-    return [
-      SmsChat(
-        phoneNumber: '+591 71234567',
-        lastMessage: 'Hola, ¿cómo estás? Espero que todo vaya bien.',
-        time: '9:24 AM',
-        unreadCount: 2,
-      ),
-      SmsChat(
-        phoneNumber: '+591 78901234',
-        lastMessage: 'La reunión es mañana a las 10:00',
-        time: '9:24 AM',
-        isTyping: true,
-      ),
-      SmsChat(
-        phoneNumber: '+591 65432109',
-        lastMessage: 'Gracias por tu ayuda con el proyecto',
-        time: '9:24 AM',
-      ),
-      SmsChat(
-        phoneNumber: '+591 72345678',
-        lastMessage: 'Te envío los documentos que necesitas',
-        time: '8:45 AM',
-        unreadCount: 3,
-      ),
-      SmsChat(
-        phoneNumber: '+591 78901234',
-        lastMessage: 'La reunión es mañana a las 10:00',
-        time: '9:24 AM',
-        isTyping: true,
-      ),
-      SmsChat(
-        phoneNumber: '+591 65432109',
-        lastMessage: 'Gracias por tu ayuda con el proyecto',
-        time: '9:24 AM',
-      ),
-      SmsChat(
-        phoneNumber: '+591 72345678',
-        lastMessage: 'Te envío los documentos que necesitas',
-        time: '8:45 AM',
-        unreadCount: 3,
-      ),
-      SmsChat(
-        phoneNumber: '+591 69876543',
-        lastMessage: 'Confirmado para el viernes',
-        time: '9:26 AM',
-        unreadCount: 1,
-      ),
-      SmsChat(
-        phoneNumber: '+591 73456789',
-        lastMessage: 'Perfecto, nos vemos entonces',
-        time: '9:24 AM',
-      ),
-      SmsChat(
-        phoneNumber: '+591 61234567',
-        lastMessage: 'No olvides revisar el correo que te envié',
-        time: '8:30 PM',
-      ),
-      SmsChat(
-        phoneNumber: '+591 72345678',
-        lastMessage: 'Te envío los documentos que necesitas',
-        time: '8:45 AM',
-        unreadCount: 3,
-      ),
-      SmsChat(
-        phoneNumber: '+591 69876543',
-        lastMessage: 'Confirmado para el viernes',
-        time: '9:26 AM',
-        unreadCount: 1,
-      ),
-      SmsChat(
-        phoneNumber: '+591 73456789',
-        lastMessage: 'Perfecto, nos vemos entonces',
-        time: '9:24 AM',
-      ),
-      SmsChat(
-        phoneNumber: '+591 61234567',
-        lastMessage: 'No olvides revisar el correo que te envié',
-        time: '8:30 PM',
-      ),
-    ];
-  }
-
   void _showBottombarScroll(BuildContext context) {
     final bottomBarState = Provider.of<BottomBarStateOptionsActividad>(
       context,
@@ -778,7 +781,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final responsive = Responsive.of(context);
     final bottomBarState = Provider.of<BottomBarStateOptionsActividad>(context);
-    final chats = _getFakeChats();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -836,18 +838,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: ListView.separated(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: chats.length,
+                      itemCount: messagesData.length,
                       separatorBuilder: (context, index) => Divider(
                         height: 1,
                         indent: 80,
                         color: Colors.grey.withOpacity(0.2),
                       ),
                       itemBuilder: (context, index) {
-                        final chat = chats[index];
+                        final chat = messagesData[index];
                         return InkWell(
                           onTap: () {
                             // Navegar al chat individual
-                            print('Abrir chat con ${chat.phoneNumber}');
+                            print(
+                              'Abrir chat con ${chat.sender?.ci ?? 'Número desconocido'}',
+                            );
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -889,7 +893,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              chat.phoneNumber,
+                                              chat.sender?.ci ??
+                                                  'Número desconocido',
                                               style: TextStyle(
                                                 fontSize: responsive
                                                     .heightPercent(1.6),
@@ -902,20 +907,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                             ),
                                           ),
                                           Text(
-                                            chat.time,
+                                            chat.createdAt != null
+                                                ? TimeOfDay.fromDateTime(
+                                                    chat.createdAt!,
+                                                  ).format(context)
+                                                : '',
                                             style: TextStyle(
                                               fontSize: responsive
                                                   .heightPercent(
                                                     1.4,
                                                   ),
-                                              color: chat.unreadCount > 0
-                                                  ? Theme.of(
-                                                      context,
-                                                    ).primaryColor
-                                                  : Colors.grey,
-                                              fontWeight: chat.unreadCount > 0
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.normal,
                                             ),
                                           ),
                                         ],
@@ -925,7 +928,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              chat.lastMessage,
+                                              chat.message ?? '',
                                               style: TextStyle(
                                                 fontSize: responsive
                                                     .heightPercent(1.4),
@@ -935,7 +938,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          if (chat.unreadCount > 0) ...[
+                                          /* if (chat.unreadCount > 0) ...[
                                             const SizedBox(width: 8),
                                             Container(
                                               padding:
@@ -962,7 +965,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                                 ),
                                               ),
                                             ),
-                                          ],
+                                          ], */
                                         ],
                                       ),
                                     ],
@@ -984,7 +987,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         enableDrag: false,
                         backgroundColor: Colors.transparent,
                         builder: (context) {
-                          return const ModalEnviarSMS();
+                          return ModalEnviarSMS(
+                            availableSimCards: _availableSimCards,
+                          );
                         },
                       );
                     },

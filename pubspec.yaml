@@ -15,6 +15,9 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_background_messenger: ^0.0.2
+  flutter_background_service_android: ^6.3.0
+  flutter_background_service_ios: ^5.0.3
+  flutter_background_service: ^5.1.0
   flutter_launcher_icons: ^0.14.4
   flutter_localizations:
     sdk: flutter
@@ -33,6 +36,7 @@ dependencies:
   permission_handler: ^11.4.0
   provider: ^6.1.5+1
   sms_sender: ^1.0.5
+  socket_io_client: ^3.1.4
   url_launcher: ^6.3.2
   ussd_launcher: ^1.5.0
 

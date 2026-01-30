@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_background_messenger/flutter_background_messenger.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gw_sms/app/presentation/global/controllers/theme_controller.dart';
@@ -18,8 +19,11 @@ import 'package:sms_sender/sms_sender.dart';
 
 class ModalEnviarSMS extends StatefulWidget {
   const ModalEnviarSMS({
+    this.availableSimCards = const [],
     super.key,
   });
+
+  final List<Map<String, dynamic>> availableSimCards;
 
   @override
   State<ModalEnviarSMS> createState() => _ModalEnviarSMSState();
@@ -38,12 +42,71 @@ class _ModalEnviarSMSState extends State<ModalEnviarSMS> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _messageController = TextEditingController();
+  final _secureStorage = const FlutterSecureStorage();
   String _status = '';
 
   @override
   void initState() {
     super.initState();
-    selectedSimSlot = 0; // Por defecto usar SIM 1
+    _loadOperadoraAndSim();
+  }
+
+  Future<void> _loadOperadoraAndSim() async {
+    final operadora = await _secureStorage.read(
+      key: 'operadora_seleccionada',
+    );
+
+    if (operadora != null && widget.availableSimCards.isNotEmpty) {
+      // Buscar la SIM que corresponde a la operadora seleccionada
+      for (final sim in widget.availableSimCards) {
+        final carrierName =
+            (sim['carrierName'] as String?)?.toLowerCase() ?? '';
+        final displayName =
+            (sim['displayName'] as String?)?.toLowerCase() ?? '';
+
+        // Detectar si es la operadora seleccionada
+        if (_detectOperador(carrierName, displayName) == operadora) {
+          final slotIndex = sim['slotIndex'] as int?;
+          if (slotIndex != null && mounted) {
+            setState(() {
+              selectedSimSlot = slotIndex;
+            });
+          }
+          break;
+        }
+      }
+    }
+
+    // Si no se encontró la SIM específica, usar 0 por defecto
+    if (selectedSimSlot == null) {
+      if (mounted) {
+        setState(() {
+          selectedSimSlot = 0;
+        });
+      }
+    }
+  }
+
+  String _detectOperador(String carrierName, String displayName) {
+    final carrier = carrierName.toLowerCase();
+    final display = displayName.toLowerCase();
+
+    if (carrier.contains('entel') || display.contains('entel')) {
+      return 'entel';
+    }
+
+    if (carrier.contains('viva') ||
+        carrier.contains('vivas') ||
+        display.contains('viva') ||
+        display.contains('vivas')) {
+      return 'viva';
+    }
+
+    if (carrier.contains('tigo') || display.contains('tigo')) {
+      return 'tigo';
+    }
+
+    return carrier.isNotEmpty ? carrier : 'desconocido';
   }
 
   Future<void> _sendSMS() async {

@@ -1,231 +1,163 @@
-/* import 'dart:async';
-import 'dart:io';
+import 'dart:async';
 
-import 'package:web_socket_channel/io.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
-class WebSocketService {
-  late WebSocketChannel _channel;
-  final StreamController<dynamic> _eventController =
-      StreamController.broadcast();
-  bool _isConnected = false;
-  String? _currentUrl;
-
-  static final WebSocketService _instance = WebSocketService._internal();
-  factory WebSocketService() => _instance;
-  WebSocketService._internal();
-
-  Stream<dynamic> get messageStream => _eventController.stream;
-
-  Future<void> connect(String url) async {
-    String wsBaseUrl =
-        url.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
-
-    final httpClient = HttpClient()
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-
-    print('wsBaseUrl: $wsBaseUrl');
-    // final uri = Uri.parse(wsBaseUrl).replace(path: '/chat', queryParameters: {
-    //   'usuarioId': userId,
-    //   'aplicacion': app,
-    // });
-    // print('URI final: $uri');
-    /*  final headers = {
-      'Authorization': 'Bearer $token',
-    }; */
-    final headers = {
-      'Authorization':
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOnsidXN1YXJpb0lkIjoxNiwiYXBsaWNhY2lvbklkIjo3NSwiZnVuY2lvbmFyaW9JZCI6MTA0LCJtc1BlcnNvbmFJZCI6MTYsImluc3RpdHVjaW9uSWQiOjEsIm9maWNpbmFJZCI6MSwibXVuaWNpcGlvSWQiOjEsImRlcGFydGFtZW50b0lkIjoxLCJwZXJmaWxQZXJzb25hSWQiOjExOSwiY2kiOiI3NDg0OTE5Iiwibm9tYnJlQ29tcGxldG8iOiJBUklFTCBCRU5KQU1JTiBUT1JSSUNPUyBQQURJTExBIiwiYXBsaWNhY2lvblRhZyI6Imp1c3RpY2lhLWxpYnJlIn0sImlhdCI6MTc0Nzc0OTQ2NCwiZXhwIjoxNzQ3NzcxMDY0fQ.-KoaL-mQM3w3MxuwXA9yApsuPfc1UA7jhzl7St4gWrk',
-      // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOnsidXN1YXJpb0lkIjoxNiwiYXBsaWNhY2lvbklkIjo2OCwiZnVuY2lvbmFyaW9JZCI6MTA0LCJtc1BlcnNvbmFJZCI6MTYsImluc3RpdHVjaW9uSWQiOjEsIm9maWNpbmFJZCI6MSwibXVuaWNpcGlvSWQiOjEsImRlcGFydGFtZW50b0lkIjoxLCJwZXJmaWxQZXJzb25hSWQiOjExOSwiY2kiOiI3NDg0OTE5Iiwibm9tYnJlQ29tcGxldG8iOiJBUklFTCBCRU5KQU1JTiBUT1JSSUNPUyBQQURJTExBIiwiYXBsaWNhY2lvblRhZyI6Imp1c3RpY2lhLWxpYnJlIn0sImlhdCI6MTc0Nzc1MDc4OSwiZXhwIjoxNzQ3NzY1MTg5fQ.qEHXimJdc6ly8nWcyfSEoJHr7AP66B4sKaUDIQ6879E',
-    };
-
-    // print(uri);
-    print('Bearer $headers');
-    await disconnect();
-
-    try {
-      _channel = IOWebSocketChannel.connect(
-        wsBaseUrl,
-        headers: headers,
-        customClient: httpClient,
-      );
-      /*  print('_channel1');
-      final webSocket = await WebSocket.connect(
-        uri.toString(),
-        headers: headers,
-        customClient: httpClient,
-      );
-      print('_channel2');
-      print('_channel3');
-      _channel = IOWebSocketChannel(webSocket); */
-      _currentUrl =
-          'ws://172.27.38.52:3001/chat/?usuarioId=104&aplicacion=webchat';
-      print('_channel4');
-      _isConnected = true;
-
-      _channel.stream.listen(
-        (message) => _hadleMessage(message),
-        onError: (error) => _hadleError(error),
-        onDone: () => _handleDisconnection(),
-      );
-    } catch (e) {
-      throw Exception('No se pudo conectar al WebSocket: $e');
-    }
-  }
-
-  void _hadleMessage(dynamic message) {
-    try {
-      final parsedMessage = message;
-      print('Mensaje recibido: $parsedMessage');
-      _eventController.add(parsedMessage);
-    } catch (e) {
-      print('Error al manejar el mensaje: $e');
-    }
-  }
-
-  void _hadleError(dynamic error) {
-    print('Error en el WebSocket: $error');
-    _reconnect();
-  }
-
-  void _handleDisconnection() {
-    print('WebSocket disconnected');
-    _reconnect();
-  }
-
-  Future<void> _reconnect() async {
-    if (!_isConnected || _currentUrl == null) return;
-
-    _isConnected = false;
-    print('asdasd111');
-    await Future.delayed(const Duration(seconds: 2));
-    if (_currentUrl != null) {
-      await connect(_currentUrl!);
-    }
-  }
-
-  Future<void> disconnect() async {
-    print('Mensaje recibidoasdadkbslkasd');
-    if (_isConnected) {
-      await _channel.sink.close();
-      _isConnected = false;
-      _currentUrl = null;
-    }
-  }
-
-  void sendMessage(dynamic message) {
-    if (_isConnected) {
-      _channel.sink.add(message);
-    }
-  }
-}
- */
-
-/* import 'dart:async';
-
+import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-class WebSocketService {
-  late IO.Socket _socket;
-  final StreamController<dynamic> _eventController =
-      StreamController.broadcast();
-  bool _isConnected = false;
-  String? _currentUrl;
+enum ServerStatus { Online, Offline, Connecting, nose }
 
-  static final WebSocketService _instance = WebSocketService._internal();
-  factory WebSocketService() => _instance;
-  WebSocketService._internal();
-
-  /// Stream of incoming messages
-  Stream<dynamic> get messageStream => _eventController.stream;
-
-  /// Connect to the Socket.IO server at [url]
-  ///
-  /// [url] should include the protocol and any query parameters:
-  /// e.g. 'http://172.27.38.52:39547/chat?usuarioId=104&aplicacion=webchat'
-  Future<void> connect(String url, {String? authToken}) async {
-    // If already connected to the same URL, skip
-    if (_isConnected && _currentUrl == url) return;
-
-    // Disconnect previous socket if any
-    await disconnect();
-
-    _currentUrl = url;
-
-    // Initialize Socket.IO client
-    _socket = IO.io(
-      url,
-      IO.OptionBuilder()
-          .setTransports(['websocket']) // for WebSocket transport only
-          .disableAutoConnect() // we'll call connect manually
-          // add auth token if provided
-          .setExtraHeaders(authToken != null
-              ? {
-                  'Authorization': 'Bearer $authToken',
-                }
-              : {})
-          .build(),
+class WebSocketService2 with ChangeNotifier {
+  WebSocketService2({
+    String chatId = '66cf26df7fc0dfd1aebeee4d',
+    int ususarioId = 790,
+    String token =
+        // ignore: lines_longer_than_80_chars
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyWElqSWxDWTdPOEx6SVkwT2toYzVNa3ZFTnhaNGtkZ2xrVndEWTZpVG45bFNwTEYyWXlLUVhoa0VrMytxNkQxaVZIYThxVUF1cC95OXFRWkduc0xPa1pMY0p6SFJCR0o3TURJNTFCdWo5Vll5U0g0eVgycU9PUGoxTjNzY2xSZEU1S3FSS1IreEVvd1VBRDJzZHdOWjN2SDBEL29BODhHYUlGaEtRQjV5WHI3dVR1aG5GeGpOWUx5MWovbnRXKzFTWHBWUmFpN0k5ZzNtSzdCWlNuM1o1bG9hdU1HOVFybEZtQmlhUGRiQXQrYlUraTUyVEY4aEhxakFIdHA2MTh6WStoQ1craFBDdW9Tbzl4SUYxUHdjOCtVMHBwMDhVMlhDbDkycWlUeDYzZjMrN3BKbnJ4b2g3bzEwK0JXaEpyNDdmNUpIVG5kR3M0ZjhYU0plc3cvb1gxK0tVbE1LVWlNZURqMVl0YVc5NC9JdkNJZFhlZkdkSnphb2pCUk1zeklkVTBRV09INVRjVHlES2pZcVNVckUyV2tWelZGRjhLc3BmY0dSYkxMTko5SFUzSFYwOGQrc2xoa3Rxd0RZeEdLa1ArT3dnNllna2dFQnJ3TjcwOXJJYTFCYjIxTHEvMEhKamtrQzlBZm44OG1xQVRiRkNqdDJaVzdQaGVhUzdPcUV4cjlpSVA3K3F3QjUvOVFTMW5aRDJHeTFyTTFjaVZzdWZaKzBRUjNKdmRIdUxIREttMlBGY3BOUFBMdFR4TTRGdmZOa3NPRGRFOGFjTzhTczRTQ3QwUzlzOEN6cDVDUjQ4dThncGxEcUJ1U0tZTXdPTGxMeWMrTXUwTmVZQVhxWFBBc1hEblZyVy83Mlp6Wit5YkdxdHRtMU5mcHB5ZWtNVFlQYVZRbGNKUSs2NW9KZ0d6ZkxveWNPaWVxODNPcmpIbkk0S2dIR0E3dHlqUU1kYUtYUk81eUZ4N0xCcnpZZWRBcWNhMW4yeXBKTjdBdUMzK2RBSzVaVXJjTUM3ZXBBRzRSSGZGK3Y4MDhyWTVVVytORXY4anFGM1NySE91cFA3MWZldjV0VXkxY0pwVzU5bXlCUkJLbzNHZTdLQUc4d0hqUjl4eUNnYUdFWmQ4Vk9SRnd3QT09IiwiaXYiOiJUZ3ppazR3NVlpN3lWQTNaeUZpcHZ3PT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzY5Nzk0MjY3LCJleHAiOjE3Njk4ODA2Njd9.2ag_Bxz2dVoQrDQ_yJP-oB_6NX1lbSILkfmT0VyO9n4',
+  }) {
+    connect(
+      chatId: chatId,
+      ususarioId: ususarioId,
+      token: token,
     );
-
-    // Register event handlers
-    _socket.on('connect', (_) {
-      _isConnected = true;
-      print('Socket.IO connected to $_currentUrl');
-    });
-
-    _socket.on('disconnect', (_) {
-      _isConnected = false;
-      print('Socket.IO disconnected');
-      // Optionally attempt reconnection
-      _reconnect();
-    });
-
-    _socket.on('error', (err) {
-      print('Socket.IO error:\n $err');
-      _eventController.addError(err);
-      // Optionally attempt reconnection
-      _reconnect();
-    });
-
-    // Listen for a generic message event; adjust the event name as needed
-    _socket.on('mensaje', (data) {
-      print('Mensaje recibido: \$data');
-      _eventController.add(data);
-    });
-
-    // Finally, connect
-    _socket.connect();
   }
+  ServerStatus _serverStatus = ServerStatus.Connecting;
 
-  void _reconnect() async {
-    if (_currentUrl == null) return;
-    // small delay before reconnect
-    await Future.delayed(const Duration(seconds: 2));
-    if (!_isConnected && _currentUrl != null) {
-      print('Reconnecting to \$_currentUrl...');
-      _socket.connect();
+  IO.Socket? _socket;
+  ServerStatus get serverStatus => _serverStatus;
+
+  IO.Socket? get socket => _socket;
+  Function? get emit => _socket?.emit;
+
+  String chatId = '66cf26df7fc0dfd1aebeee4d';
+  int ususariosId = 790;
+
+  final StreamController<dynamic> _messageStreamController =
+      StreamController<dynamic>.broadcast();
+  Stream<dynamic> get messageStream => _messageStreamController.stream;
+
+  final StreamController<dynamic> _sentMessageStreamController =
+      StreamController<dynamic>.broadcast();
+  Stream<dynamic> get sentMessageStream => _sentMessageStreamController.stream;
+
+  void connect({
+    String chatId = '66cf26df7fc0dfd1aebeee4d',
+    int ususarioId = 790,
+    String token =
+        // ignore: lines_longer_than_80_chars
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyWElqSWxDWTdPOEx6SVkwT2toYzVNa3ZFTnhaNGtkZ2xrVndEWTZpVG45bFNwTEYyWXlLUVhoa0VrMytxNkQxaVZIYThxVUF1cC95OXFRWkduc0xPa1pMY0p6SFJCR0o3TURJNTFCdWo5Vll5U0g0eVgycU9PUGoxTjNzY2xSZEU1S3FSS1IreEVvd1VBRDJzZHdOWjN2SDBEL29BODhHYUlGaEtRQjV5WHI3dVR1aG5GeGpOWUx5MWovbnRXKzFTWHBWUmFpN0k5ZzNtSzdCWlNuM1o1bG9hdU1HOVFybEZtQmlhUGRiQXQrYlUraTUyVEY4aEhxakFIdHA2MTh6WStoQ1craFBDdW9Tbzl4SUYxUHdjOCtVMHBwMDhVMlhDbDkycWlUeDYzZjMrN3BKbnJ4b2g3bzEwK0JXaEpyNDdmNUpIVG5kR3M0ZjhYU0plc3cvb1gxK0tVbE1LVWlNZURqMVl0YVc5NC9JdkNJZFhlZkdkSnphb2pCUk1zeklkVTBRV09INVRjVHlES2pZcVNVckUyV2tWelZGRjhLc3BmY0dSYkxMTko5SFUzSFYwOGQrc2xoa3Rxd0RZeEdLa1ArT3dnNllna2dFQnJ3TjcwOXJJYTFCYjIxTHEvMEhKamtrQzlBZm44OG1xQVRiRkNqdDJaVzdQaGVhUzdPcUV4cjlpSVA3K3F3QjUvOVFTMW5aRDJHeTFyTTFjaVZzdWZaKzBRUjNKdmRIdUxIREttMlBGY3BOUFBMdFR4TTRGdmZOa3NPRGRFOGFjTzhTczRTQ3QwUzlzOEN6cDVDUjQ4dThncGxEcUJ1U0tZTXdPTGxMeWMrTXUwTmVZQVhxWFBBc1hEblZyVy83Mlp6Wit5YkdxdHRtMU5mcHB5ZWtNVFlQYVZRbGNKUSs2NW9KZ0d6ZkxveWNPaWVxODNPcmpIbkk0S2dIR0E3dHlqUU1kYUtYUk81eUZ4N0xCcnpZZWRBcWNhMW4yeXBKTjdBdUMzK2RBSzVaVXJjTUM3ZXBBRzRSSGZGK3Y4MDhyWTVVVytORXY4anFGM1NySE91cFA3MWZldjV0VXkxY0pwVzU5bXlCUkJLbzNHZTdLQUc4d0hqUjl4eUNnYUdFWmQ4Vk9SRnd3QT09IiwiaXYiOiJUZ3ppazR3NVlpN3lWQTNaeUZpcHZ3PT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzY5Nzk0MjY3LCJleHAiOjE3Njk4ODA2Njd9.2ag_Bxz2dVoQrDQ_yJP-oB_6NX1lbSILkfmT0VyO9n4',
+  }) {
+    try {
+      const baseUrl = 'https://ms-websocket-ws.dev.mp.gob.bo';
+      // var url =
+      //     'https://ms-websocket-ws.dev.mp.gob.bo/chat?usuarioId=$ususarioId&aplicacion=roma';
+      const url =
+          'https://ms-websocket-ws.dev.mp.gob.bo/chat?usuarioId=790&aplicacion=roma';
+      // var url = 'wss://ms-websocket-ws.mp.gob.bo';
+      // var uri = Uri.parse(url);mp
+      _socket = IO.io(
+        url,
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .disableAutoConnect()
+            // .setPath('/socket.io')
+            // .setQuery({'usuarioId': ususarioId, 'aplicacion': 'roma'})
+            .setExtraHeaders({'Authorization': token})
+            .setAuth({'token': token})
+            .build(),
+      );
+
+      _socket!.onConnect((_) {
+        _serverStatus = ServerStatus.Online;
+        _socket!.emit('joinRoom', chatId);
+        notifyListeners();
+        print('Autenticado y conectado al servidor WebSocket');
+      });
+
+      // Escuchar mensajes recibidos
+      _socket!.on('receiveMessage', (data) {
+        print('Mensaje recibido: $data');
+        _messageStreamController.add(data);
+      });
+
+      // Escuchar confirmaciones de mensajes enviados
+      _socket!.on('sendMessage', (data) {
+        print('Mensaje enviado confirmado: $data');
+        _sentMessageStreamController.add(data);
+      });
+
+      _socket!.onDisconnect((_) {
+        _serverStatus = ServerStatus.Offline;
+        notifyListeners();
+        print('Desconectado');
+      });
+      _socket!.onError((error) {
+        print('=== ERROR DETALLADO ===');
+        print('Error en la conexión: $error');
+        print('Tipo de error: ${error.runtimeType}');
+        _serverStatus = ServerStatus.Offline;
+        notifyListeners();
+
+        // Intenta reconectar después de 5 segundos
+        Future.delayed(const Duration(seconds: 5), () {
+          print('Intentando reconectar...');
+          _socket?.connect();
+        });
+      });
+
+      _socket!.onConnectError((data) {
+        print('Error de conexión: $data');
+        _serverStatus = ServerStatus.Offline;
+        notifyListeners();
+      });
+
+      print('Intentando conectar a: $url');
+      _socket!.connect();
+    } catch (e) {
+      print('Error al conectar: $e');
+      _serverStatus = ServerStatus.Offline;
+      notifyListeners();
     }
   }
 
-  /// Disconnect the socket
-  Future<void> disconnect() async {
-    if (_isConnected) {
-      _socket.disconnect();
-      _socket.dispose();
-      _isConnected = false;
-      _currentUrl = null;
-    }
-  }
+  // Método para reconectar con nuevo token si es necesario
+  /* Future<void> reconnectWithNewToken(String newToken) async {
+    disconnect();
+    token = newToken;
+    connect();
+  } */
 
-  /// Send a message using [event] name and [message] payload
-  ///
-  /// e.g. sendMessage('mensaje', {'text': 'Hola'});
-  void sendMessage(String event, dynamic message) {
-    if (_isConnected) {
-      _socket.emit(event, message);
+  // Método para enviar mensajes de forma más limpia
+  bool sendMessage({
+    required String roomId,
+    required Map<String, dynamic> message,
+    required int senderId,
+  }) {
+    if (_socket != null && _serverStatus == ServerStatus.Online) {
+      _socket!.emit('sendMessage', {
+        'roomId': roomId,
+        'message': message,
+        'senderId': senderId,
+      });
+      print('Mensaje enviado a la sala $roomId');
+      return true;
     } else {
-      print('Cannot send message, socket not connected');
+      print('Error: Socket no conectado o servidor offline');
+      return false;
     }
   }
-} */
+
+  void disconnect() {
+    print('Desconectado');
+    _socket!.onDisconnect((_) {
+      _serverStatus = ServerStatus.Offline;
+      notifyListeners();
+    });
+    _socket = null;
+  }
+
+  @override
+  void dispose() {
+    _messageStreamController.close();
+    _sentMessageStreamController.close();
+    super.dispose();
+  }
+}
