@@ -191,7 +191,7 @@ class BackgroundSmsService {
       }
 
       // Número de teléfono estático por ahora
-      const phoneNumber = '+59175769463';
+      const phoneNumber = '+59163354864';
 
       print('📱 Preparando envío de SMS...');
       print('   Destinatario CI: $ciString');

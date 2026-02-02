@@ -267,3 +267,11 @@ flutter analyze
 ```
 
 Y revisa qué dependencias están usando más espacio.
+
+# Compilar y instalar
+
+flutter build apk --flavor production --target lib/main_production.dart --split-per-abi --debug
+
+# Instalar en tablet
+
+adb install -r build/app/outputs/flutter-apk/app-armeabi-v7a-production-debug.apk
