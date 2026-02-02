@@ -8,6 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:gw_sms/app/data/services/background/background_service_helper.dart';
 import 'package:gw_sms/app/data/services/socket/web_socket_service.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
 import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
@@ -61,10 +62,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _hasRequestedPhonePermission = false;
   List<Map<String, dynamic>> _availableSimCards = [];
 
+  // Servicio de background
+  final _backgroundService = BackgroundServiceHelper();
+  bool _isBackgroundServiceRunning = false;
+
   final List<MessageDataModel> messagesData = [];
   late final WebSocketService2 _socketService2;
-  StreamSubscription? _messageSubscription;
-  StreamSubscription? _sentMessageSubscription;
+  StreamSubscription<dynamic>? _messageSubscription;
+  StreamSubscription<dynamic>? _sentMessageSubscription;
+  StreamSubscription<dynamic>? _backgroundSmsSuccessSubscription;
+  StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
 
   @override
   void initState() {
@@ -77,6 +84,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _socketService2 = WebSocketService2();
     _setupWebSocketListeners();
     _socketService2.addListener(_onWebSocketStatusChange);
+
+    // Inicializar servicio de background
+    _initializeBackgroundService();
+    _setupBackgroundSmsListeners();
   }
 
   void _setupWebSocketListeners() {
@@ -157,6 +168,165 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  /// Configura listeners para eventos de SMS desde el servicio de background
+  void _setupBackgroundSmsListeners() {
+    // Escuchar cuando un SMS se envía exitosamente desde background
+    _backgroundSmsSuccessSubscription = _backgroundService.service
+        .on('smsSentSuccess')
+        .listen((event) {
+          if (event != null && mounted) {
+            final phoneNumber = event['phoneNumber'] as String?;
+            final message = event['message'] as String?;
+
+            print('✅ SMS enviado desde background: $phoneNumber - $message');
+
+            // Buscar el mensaje en la lista y marcarlo como entregado
+            if (message != null) {
+              setState(() {
+                final index = messagesData.indexWhere(
+                  (msg) => msg.message == message && (!msg.isEntregado),
+                );
+                if (index != -1) {
+                  messagesData[index] = messagesData[index].copyWith(
+                    isEnviando: false,
+                    isEntregado: true,
+                  );
+                  print('✅ Mensaje marcado como entregado en UI');
+                }
+              });
+            }
+          }
+        });
+
+    // Escuchar cuando falla el envío desde background
+    _backgroundSmsFailedSubscription = _backgroundService.service
+        .on('smsSentFailed')
+        .listen((event) {
+          if (event != null && mounted) {
+            final message = event['message'] as String?;
+
+            print('❌ Fallo en envío SMS desde background: $message');
+
+            // Buscar el mensaje y marcarlo como no entregado
+            if (message != null) {
+              setState(() {
+                final index = messagesData.indexWhere(
+                  (msg) => msg.message == message,
+                );
+                if (index != -1) {
+                  messagesData[index] = messagesData[index].copyWith(
+                    isEnviando: false,
+                    isEntregado: false,
+                  );
+                  print('❌ Mensaje marcado como no entregado en UI');
+                }
+              });
+            }
+          }
+        });
+  }
+
+  /// Inicializa el servicio de background para SMS
+  Future<void> _initializeBackgroundService() async {
+    try {
+      // Inicializar el servicio
+      final initialized = await _backgroundService.initializeService();
+      if (!initialized) {
+        print('⚠️ No se pudo inicializar el servicio de background');
+        return;
+      }
+
+      // Verificar si ya está corriendo
+      final isRunning = await _backgroundService.isServiceRunning();
+      setState(() {
+        _isBackgroundServiceRunning = isRunning;
+      });
+
+      print('✅ Servicio de background inicializado. Running: $isRunning');
+    } catch (e) {
+      print('❌ Error al inicializar servicio de background: $e');
+    }
+  }
+
+  /// Inicia el servicio de background
+  Future<void> _startBackgroundService() async {
+    try {
+      final started = await _backgroundService.startService();
+      if (started && _operadoraSeleccionada.isNotEmpty) {
+        // Actualizar la operadora en el servicio
+        final simSlot = _getSimSlotForOperadora(_operadoraSeleccionada);
+        await _backgroundService.updateOperadora(
+          _operadoraSeleccionada,
+          simSlot,
+        );
+
+        setState(() {
+          _isBackgroundServiceRunning = true;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Servicio de SMS en segundo plano iniciado'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error al iniciar servicio: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error al iniciar servicio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Detiene el servicio de background
+  Future<void> _stopBackgroundService() async {
+    try {
+      await _backgroundService.stopService();
+      setState(() {
+        _isBackgroundServiceRunning = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🛑 Servicio de SMS detenido'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error al detener servicio: $e');
+    }
+  }
+
+  /// Obtiene el slot de SIM basado en la operadora seleccionada
+  int _getSimSlotForOperadora(String operadora) {
+    if (_availableSimCards.isEmpty) return 0;
+
+    // Buscar la SIM que coincida con la operadora
+    for (var i = 0; i < _availableSimCards.length; i++) {
+      final sim = _availableSimCards[i];
+      final carrierName = (sim['carrierName'] as String? ?? '').toLowerCase();
+      final displayName = (sim['displayName'] as String? ?? '').toLowerCase();
+      final operadoraLower = operadora.toLowerCase();
+
+      if (carrierName.contains(operadoraLower) ||
+          displayName.contains(operadoraLower)) {
+        return sim['slot'] as int? ?? i;
+      }
+    }
+
+    return 0; // Fallback al primer slot
+  }
+
   Future<void> _initializeApp() async {
     // Primero solicitar permiso y cargar SIMs
     await _requestPhonePermissionOnce();
@@ -168,6 +338,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
+    _messageSubscription?.cancel();
+    _sentMessageSubscription?.cancel();
+    _backgroundSmsSuccessSubscription?.cancel();
+    _backgroundSmsFailedSubscription?.cancel();
+    // No detenemos el servicio de background al cerrar la app
+    // para que siga funcionando
     super.dispose();
   }
 
@@ -192,6 +368,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     // Solicitar permisos necesarios para USSD
     final Map<Permission, PermissionStatus> statuses = await [
+      Permission.notification,
       Permission.sms,
       Permission.phone,
     ].request();
@@ -374,6 +551,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState(() {
         _operadoraSeleccionada = operadora ?? '';
       });
+
+      // Actualizar la operadora en el servicio de background
+      if (_operadoraSeleccionada.isNotEmpty && _isBackgroundServiceRunning) {
+        final simSlot = _getSimSlotForOperadora(_operadoraSeleccionada);
+        await _backgroundService.updateOperadora(
+          _operadoraSeleccionada,
+          simSlot,
+        );
+      }
     }
   }
 
@@ -397,6 +583,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Envía un SMS automáticamente cuando llega un mensaje del servidor
   Future<void> _enviarSmsAutomatico(MessageDataModel message) async {
     try {
+      // Si el servicio de background está activo, no enviar desde aquí
+      // Dejar que el servicio de background lo maneje
+      if (_isBackgroundServiceRunning) {
+        print(
+          'ℹ️ Servicio de background activo - SMS será enviado desde background',
+        );
+        return;
+      }
+
       // Obtener el CI del sender
       final senderCI = message.sender?.ci;
       final messageText = message.message;
@@ -413,7 +608,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       }
 
       // Construir el número telefónico
-      const String phoneNumber = '+59163354864'; // Bolivia +591
+      const String phoneNumber = '+59175769463'; // Bolivia +591
 
       print('Iniciando envío automático de SMS');
       print('Destinatario CI: $senderCI');
@@ -482,6 +677,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               print(
                 'SMS enviado automáticamente a $phoneNumber con SIM slot $simSlot',
               );
+
+              // Mostrar notificación de éxito
+              _backgroundService.showSuccessNotification(
+                'SMS Enviado a $phoneNumber',
+              );
             } else {
               // Error al enviar - volver a mostrar usuario
               messagesData[index] = messagesData[index].copyWith(
@@ -489,6 +689,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 isEntregado: false,
               );
               print('No se pudo enviar el SMS automáticamente');
+
+              // Mostrar notificación de error
+              _backgroundService.showErrorNotification(
+                'No se pudo enviar el mensaje a $phoneNumber',
+              );
             }
           }
         });
@@ -920,6 +1125,75 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Column(
           children: [
+            // Banner de control del servicio de background
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: _isBackgroundServiceRunning
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                border: Border(
+                  bottom: BorderSide(
+                    color: _isBackgroundServiceRunning
+                        ? Colors.green
+                        : Colors.orange,
+                    width: 2,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _isBackgroundServiceRunning
+                        ? Icons.cloud_done
+                        : Icons.cloud_off,
+                    color: _isBackgroundServiceRunning
+                        ? Colors.green
+                        : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isBackgroundServiceRunning
+                          ? 'Servicio activo - SMS automáticos habilitados'
+                          : 'Servicio detenido - SMS solo en primer plano',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _isBackgroundServiceRunning
+                            ? Colors.green.shade700
+                            : Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _isBackgroundServiceRunning
+                        ? _stopBackgroundService
+                        : _startBackgroundService,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isBackgroundServiceRunning
+                          ? Colors.red
+                          : Colors.green,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      minimumSize: const Size(0, 0),
+                    ),
+                    child: Text(
+                      _isBackgroundServiceRunning ? 'Detener' : 'Iniciar',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
