@@ -124,13 +124,19 @@ class BackgroundServiceHelper {
   FlutterBackgroundService get service => _service;
 
   /// Muestra una notificación de éxito desde el UI
-  Future<void> showSuccessNotification(String message) async {
-    await _showNotification('✅ SMS Enviado', message);
+  Future<void> showSuccessNotification(
+    String phoneNumber,
+    String message,
+  ) async {
+    await _showNotification(
+      '✓ SMS Enviado a $phoneNumber',
+      'Mensaje: $message',
+    );
   }
 
   /// Muestra una notificación de error desde el UI
   Future<void> showErrorNotification(String message) async {
-    await _showNotification('❌ Error al Enviar SMS', message);
+    await _showNotification('✗ Error al Enviar SMS', message);
   }
 
   /// Configura listeners para recibir actualizaciones del servicio
@@ -166,8 +172,8 @@ class BackgroundServiceHelper {
                 '✅ SMS enviado exitosamente desde primer plano por solicitud de background',
               );
               await _showNotification(
-                '✅ SMS Enviado',
-                'SMS Enviado a $phoneNumber',
+                '✓ SMS Enviado a $phoneNumber',
+                'Mensaje: $message',
               );
 
               // Notificar éxito con los datos del mensaje
@@ -179,8 +185,8 @@ class BackgroundServiceHelper {
             } else {
               print('❌ Error al enviar SMS solicitado por background');
               await _showNotification(
-                '❌ Error al Enviar SMS',
-                'No se pudo enviar el mensaje a $phoneNumber',
+                '✗ Error al Enviar SMS',
+                'No se pudo enviar a $phoneNumber',
               );
 
               // Notificar fallo
@@ -192,7 +198,7 @@ class BackgroundServiceHelper {
           } catch (e) {
             print('❌ Error al procesar solicitud de SMS: $e');
             await _showNotification(
-              '❌ Error al Enviar SMS',
+              '✗ Error al Enviar SMS',
               'Error: $e',
             );
           }
