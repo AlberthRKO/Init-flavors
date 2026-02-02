@@ -13,9 +13,12 @@ import 'package:gw_sms/app/data/services/utils/local_providers.dart';
 import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
+import 'package:gw_sms/app/presentation/global/theme/colors.dart';
+import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
 import 'package:gw_sms/app/presentation/global/utils/funciones.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
 import 'package:gw_sms/app/presentation/global/widgets/custom_appbar.dart';
+import 'package:gw_sms/app/presentation/global/widgets/custom_button_box.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_enviar_sms.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_error.dart';
 import 'package:gw_sms/app/presentation/global/widgets/modals/modal_seleccion_operadora.dart';
@@ -62,11 +65,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   // Servicio de background (siempre activo)
   final _backgroundService = BackgroundServiceHelper();
+  bool _isWebSocketConnected = false;
+  bool _isServiceRunning = false;
 
   final List<MessageDataModel> messagesData = [];
   StreamSubscription<dynamic>? _backgroundSmsSuccessSubscription;
   StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
   StreamSubscription<dynamic>? _newMessageSubscription;
+  StreamSubscription<dynamic>? _serviceStatusSubscription;
 
   @override
   void initState() {
@@ -199,6 +205,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             }
           }
         });
+
+    // Escuchar actualizaciones del estado del servicio
+    _serviceStatusSubscription = _backgroundService.service.on('update').listen((
+      event,
+    ) {
+      if (event != null && mounted) {
+        final isConnected = event['isConnected'] as bool? ?? false;
+        setState(() {
+          _isWebSocketConnected = isConnected;
+        });
+        print(
+          '🔄 Estado WebSocket: ${isConnected ? "Conectado" : "Desconectado"}',
+        );
+      }
+    });
   }
 
   /// Inicializa el servicio de background para SMS (siempre activo)
@@ -220,9 +241,79 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
 
+      // Verificar si está corriendo
+      final isRunning = await _backgroundService.isServiceRunning();
+      setState(() {
+        _isServiceRunning = isRunning;
+      });
+
       print('✅ Servicio de background inicializado y activo');
     } catch (e) {
       print('❌ Error al inicializar servicio de background: $e');
+    }
+  }
+
+  /// Inicia el servicio de WebSocket manualmente
+  Future<void> _startWebSocketService() async {
+    try {
+      final started = await _backgroundService.startService();
+      if (started) {
+        setState(() {
+          _isServiceRunning = true;
+        });
+
+        // Actualizar la operadora
+        if (_operadoraSeleccionada.isNotEmpty) {
+          final simSlot = _getSimSlotForOperadora(_operadoraSeleccionada);
+          await _backgroundService.updateOperadora(
+            _operadoraSeleccionada,
+            simSlot,
+          );
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Servicio WebSocket iniciado'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error al iniciar servicio: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Detiene el servicio de WebSocket manualmente
+  Future<void> _stopWebSocketService() async {
+    try {
+      await _backgroundService.stopService();
+      setState(() {
+        _isServiceRunning = false;
+        _isWebSocketConnected = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🛑 Servicio WebSocket detenido'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error al detener servicio: $e');
     }
   }
 
@@ -260,6 +351,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _newMessageSubscription?.cancel();
     _backgroundSmsSuccessSubscription?.cancel();
     _backgroundSmsFailedSubscription?.cancel();
+    _serviceStatusSubscription?.cancel();
     // El servicio de background sigue corriendo siempre
     super.dispose();
   }
@@ -910,6 +1002,88 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: _isWebSocketConnected
+                      ? primary.withOpacity(0.1)
+                      : _isServiceRunning
+                      ? lunchColor.withOpacity(0.1)
+                      : deleteColor.withOpacity(0.1),
+                  border: Border.all(
+                    color: _isWebSocketConnected
+                        ? primary
+                        : _isServiceRunning
+                        ? lunchColor
+                        : deleteColor,
+                    width: 0.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    SvgPicture.asset(
+                      _isWebSocketConnected
+                          ? '${assetImgIcon}check.svg'
+                          : _isServiceRunning
+                          ? '${assetImgIcon}estado.svg'
+                          : '${assetImgIcon}close.svg',
+                      color: _isWebSocketConnected
+                          ? primary
+                          : _isServiceRunning
+                          ? lunchColor
+                          : deleteColor,
+                      width: responsive.heightPercent(2),
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Column(
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _isWebSocketConnected
+                                      ? 'Conectado - GW SMS activo'
+                                      : _isServiceRunning
+                                      ? 'Conectando al servidor...'
+                                      : 'Desconectado',
+                                  style: TextStyle(
+                                    fontSize: responsive.heightPercent(1.5),
+                                    color: _isWebSocketConnected
+                                        ? primary
+                                        : _isServiceRunning
+                                        ? lunchColor
+                                        : deleteColor,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    CustomButtonBoxStyle(
+                      title: _isServiceRunning ? 'Detener' : 'Iniciar',
+                      funcion: _isServiceRunning
+                          ? _stopWebSocketService
+                          : _startWebSocketService,
+                      color: _isServiceRunning ? Colors.red : primary,
+                      iconActive: true,
+                      icon: 'paper.svg',
+                      fontSize: responsive.heightPercent(1.4),
+                      sizeHeight: 30,
+                      sizeWidth: 100,
+                      isShadow: true,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
