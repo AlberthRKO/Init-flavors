@@ -33,20 +33,24 @@ class BackgroundServiceHelper {
       await _service.configure(
         androidConfiguration: AndroidConfiguration(
           onStart: onStart,
-          autoStart: false,
           isForegroundMode: true,
           notificationChannelId: 'gw_sms_background',
           initialNotificationTitle: 'Servicio SMS Activo',
-          initialNotificationContent: 'Esperando mensajes...',
+          initialNotificationContent: 'Conectado al servidor...',
           foregroundServiceNotificationId: 888,
           foregroundServiceTypes: [AndroidForegroundType.dataSync],
         ),
         iosConfiguration: IosConfiguration(
-          autoStart: false,
           onForeground: onStart,
           onBackground: onIosBackground,
         ),
       );
+
+      // Iniciar servicio inmediatamente y configurar listeners
+      final started = await _service.startService();
+      if (started) {
+        _setupListeners();
+      }
 
       print('✅ Servicio de background inicializado correctamente');
       return true;

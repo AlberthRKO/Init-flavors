@@ -199,6 +199,11 @@ class BackgroundSmsService {
       print('   Mensaje: $messageText');
       print('   SIM slot: $_simSlot');
 
+      // Notificar al UI que llegó un nuevo mensaje (para actualizar la lista)
+      service.invoke('newMessage', {
+        'message': messageData,
+      });
+
       // Notificar al UI principal para que envíe el SMS
       // Ya que no podemos enviar SMS directamente desde background
       service.invoke('sendSmsRequest', {

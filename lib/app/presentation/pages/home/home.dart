@@ -9,11 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/data/services/background/background_service_helper.dart';
-import 'package:gw_sms/app/data/services/socket/web_socket_service.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
 import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
-import 'package:gw_sms/app/domain/services/sms_service.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/utils/funciones.dart';
 import 'package:gw_sms/app/presentation/global/utils/responsive.dart';
@@ -62,16 +60,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _hasRequestedPhonePermission = false;
   List<Map<String, dynamic>> _availableSimCards = [];
 
-  // Servicio de background
+  // Servicio de background (siempre activo)
   final _backgroundService = BackgroundServiceHelper();
-  bool _isBackgroundServiceRunning = false;
 
   final List<MessageDataModel> messagesData = [];
-  late final WebSocketService2 _socketService2;
-  StreamSubscription<dynamic>? _messageSubscription;
-  StreamSubscription<dynamic>? _sentMessageSubscription;
   StreamSubscription<dynamic>? _backgroundSmsSuccessSubscription;
   StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
+  StreamSubscription<dynamic>? _newMessageSubscription;
 
   @override
   void initState() {
@@ -81,95 +76,75 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
-    _socketService2 = WebSocketService2();
-    _setupWebSocketListeners();
-    _socketService2.addListener(_onWebSocketStatusChange);
 
-    // Inicializar servicio de background
+    // Inicializar servicio de background (siempre activo)
     _initializeBackgroundService();
-    _setupBackgroundSmsListeners();
+    _setupBackgroundListeners();
   }
 
-  void _setupWebSocketListeners() {
-    // Escuchar cambios de estado
-    _socketService2.addListener(_onWebSocketStatusChange);
+  /// Configura listeners para eventos del servicio de background
+  void _setupBackgroundListeners() {
+    // Escuchar cuando llega un nuevo mensaje desde el background
+    _newMessageSubscription = _backgroundService.service.on('newMessage').listen((
+      event,
+    ) {
+      if (event != null && mounted) {
+        final messageData = event['message'] as Map<String, dynamic>?;
+        if (messageData == null) return;
 
-    // Escuchar mensajes entrantes
-    _messageSubscription = _socketService2.messageStream.listen((message) {
-      final newMessage = MessageDataModel.fromJson(
-        message['message'] as Map<String, dynamic>,
-      );
+        final newMessage = MessageDataModel.fromJson(messageData);
 
-      setState(() {
-        // Si el mensaje tiene un response (calificación), buscar el mensaje original y actualizarlo
-        if (newMessage.response != null) {
-          // Buscar el mensaje original por ID y actualizarlo con la calificación
-          final int index = messagesData.indexWhere(
-            (msg) => msg.id == newMessage.id,
-          );
-          if (index != -1) {
-            // Actualizar el mensaje existente con la calificación
-            messagesData[index] = newMessage;
-            print('Mensaje actualizado con calificación: ${newMessage.id}');
-          } else {
-            // Si no se encuentra, agregarlo como mensaje nuevo
-            messagesData.insert(0, newMessage);
-            print(
-              'Mensaje con calificación agregado como nuevo: ${newMessage.id}',
+        setState(() {
+          // Si el mensaje tiene un response (calificación), buscar el mensaje original y actualizarlo
+          if (newMessage.response != null) {
+            // Buscar el mensaje original por ID y actualizarlo con la calificación
+            final int index = messagesData.indexWhere(
+              (msg) => msg.id == newMessage.id,
             );
-          }
-        } else {
-          // Es un mensaje nuevo sin calificación
-          if (newMessage.esCliente ?? false) {
-            // Solo agregamos mensajes del cliente si no hay duplicados
-            final bool alreadyExists = messagesData.any(
-              (msg) =>
-                  msg.message == newMessage.message &&
-                  (msg.esCliente ?? false) &&
-                  (msg.createdAt
-                              ?.difference(
-                                newMessage.createdAt ?? DateTime.now(),
-                              )
-                              .abs()
-                              .inSeconds ??
-                          0) <
-                      5,
-            );
-
-            if (!alreadyExists) {
+            if (index != -1) {
+              // Actualizar el mensaje existente con la calificación
+              messagesData[index] = newMessage;
+              print('Mensaje actualizado con calificación: ${newMessage.id}');
+            } else {
+              // Si no se encuentra, agregarlo como mensaje nuevo
               messagesData.insert(0, newMessage);
-              print('Mensaje del cliente agregado: ${newMessage.id}');
+              print(
+                'Mensaje con calificación agregado como nuevo: ${newMessage.id}',
+              );
             }
           } else {
-            // Mensajes del servidor siempre se agregan
-            messagesData.insert(0, newMessage);
-            print('Mensaje del servidor agregado: ${newMessage.id}');
+            // Es un mensaje nuevo sin calificación
+            if (newMessage.esCliente ?? false) {
+              // Solo agregamos mensajes del cliente si no hay duplicados
+              final bool alreadyExists = messagesData.any(
+                (msg) =>
+                    msg.message == newMessage.message &&
+                    (msg.esCliente ?? false) &&
+                    (msg.createdAt
+                                ?.difference(
+                                  newMessage.createdAt ?? DateTime.now(),
+                                )
+                                .abs()
+                                .inSeconds ??
+                            0) <
+                        5,
+              );
 
-            // 🔔 Enviar SMS automáticamente cuando llegue un mensaje del servidor
-            _enviarSmsAutomatico(newMessage);
+              if (!alreadyExists) {
+                messagesData.insert(0, newMessage);
+                print('Mensaje del cliente agregado: ${newMessage.id}');
+              }
+            } else {
+              // Mensajes del servidor siempre se agregan
+              messagesData.insert(0, newMessage);
+              print('Mensaje del servidor agregado: ${newMessage.id}');
+              // El SMS será enviado automáticamente por el background service
+            }
           }
-        }
-      });
+        });
+      }
     });
 
-    // Escuchar confirmaciones de mensajes enviados (sendMessage)
-    _sentMessageSubscription = _socketService2.sentMessageStream.listen((
-      sentData,
-    ) {
-      print('Confirmación de mensaje enviado recibida: $sentData');
-      // Aquí puedes agregar lógica adicional si necesitas procesar las confirmaciones
-      // Por ejemplo, marcar mensajes como entregados, actualizar estados, etc.
-    });
-  }
-
-  void _onWebSocketStatusChange() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  /// Configura listeners para eventos de SMS desde el servicio de background
-  void _setupBackgroundSmsListeners() {
     // Escuchar cuando un SMS se envía exitosamente desde background
     _backgroundSmsSuccessSubscription = _backgroundService.service
         .on('smsSentSuccess')
@@ -226,84 +201,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         });
   }
 
-  /// Inicializa el servicio de background para SMS
+  /// Inicializa el servicio de background para SMS (siempre activo)
   Future<void> _initializeBackgroundService() async {
     try {
-      // Inicializar el servicio
+      // Inicializar el servicio (se inicia automáticamente)
       final initialized = await _backgroundService.initializeService();
       if (!initialized) {
         print('⚠️ No se pudo inicializar el servicio de background');
         return;
       }
 
-      // Verificar si ya está corriendo
-      final isRunning = await _backgroundService.isServiceRunning();
-      setState(() {
-        _isBackgroundServiceRunning = isRunning;
-      });
-
-      print('✅ Servicio de background inicializado. Running: $isRunning');
-    } catch (e) {
-      print('❌ Error al inicializar servicio de background: $e');
-    }
-  }
-
-  /// Inicia el servicio de background
-  Future<void> _startBackgroundService() async {
-    try {
-      final started = await _backgroundService.startService();
-      if (started && _operadoraSeleccionada.isNotEmpty) {
-        // Actualizar la operadora en el servicio
+      // Actualizar la operadora si ya está seleccionada
+      if (_operadoraSeleccionada.isNotEmpty) {
         final simSlot = _getSimSlotForOperadora(_operadoraSeleccionada);
         await _backgroundService.updateOperadora(
           _operadoraSeleccionada,
           simSlot,
         );
-
-        setState(() {
-          _isBackgroundServiceRunning = true;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Servicio de SMS en segundo plano iniciado'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
       }
+
+      print('✅ Servicio de background inicializado y activo');
     } catch (e) {
-      print('❌ Error al iniciar servicio: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error al iniciar servicio: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Detiene el servicio de background
-  Future<void> _stopBackgroundService() async {
-    try {
-      await _backgroundService.stopService();
-      setState(() {
-        _isBackgroundServiceRunning = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🛑 Servicio de SMS detenido'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Error al detener servicio: $e');
+      print('❌ Error al inicializar servicio de background: $e');
     }
   }
 
@@ -338,12 +257,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
-    _messageSubscription?.cancel();
-    _sentMessageSubscription?.cancel();
+    _newMessageSubscription?.cancel();
     _backgroundSmsSuccessSubscription?.cancel();
     _backgroundSmsFailedSubscription?.cancel();
-    // No detenemos el servicio de background al cerrar la app
-    // para que siga funcionando
+    // El servicio de background sigue corriendo siempre
     super.dispose();
   }
 
@@ -552,12 +469,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _operadoraSeleccionada = operadora ?? '';
       });
 
-      // Actualizar la operadora en el servicio de background
-      if (_operadoraSeleccionada.isNotEmpty && _isBackgroundServiceRunning) {
+      // Actualizar la operadora en el servicio de background (siempre activo)
+      if (_operadoraSeleccionada.isNotEmpty) {
         final simSlot = _getSimSlotForOperadora(_operadoraSeleccionada);
         await _backgroundService.updateOperadora(
           _operadoraSeleccionada,
           simSlot,
+        );
+        print(
+          '🔄 Operadora actualizada en servicio: $_operadoraSeleccionada (SIM $simSlot)',
         );
       }
     }
@@ -578,141 +498,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
     // Fallback si no está configurado
     return '*105#';
-  }
-
-  /// Envía un SMS automáticamente cuando llega un mensaje del servidor
-  Future<void> _enviarSmsAutomatico(MessageDataModel message) async {
-    try {
-      // Si el servicio de background está activo, no enviar desde aquí
-      // Dejar que el servicio de background lo maneje
-      if (_isBackgroundServiceRunning) {
-        print(
-          'ℹ️ Servicio de background activo - SMS será enviado desde background',
-        );
-        return;
-      }
-
-      // Obtener el CI del sender
-      final senderCI = message.sender?.ci;
-      final messageText = message.message;
-
-      // Validar que tenemos los datos necesarios
-      if (senderCI == null || senderCI.isEmpty) {
-        print('❌ No hay CI del sender para enviar SMS');
-        return;
-      }
-
-      if (messageText == null || messageText.isEmpty) {
-        print('❌ No hay contenido de mensaje para enviar');
-        return;
-      }
-
-      // Construir el número telefónico
-      const String phoneNumber = '+59175769463'; // Bolivia +591
-
-      print('Iniciando envío automático de SMS');
-      print('Destinatario CI: $senderCI');
-      print('Número: $phoneNumber');
-      print('Mensaje: $messageText');
-
-      //  Marcar como enviando (mostrar CircleProgressIndicator)
-      if (mounted) {
-        setState(() {
-          final index = messagesData.indexWhere((msg) => msg.id == message.id);
-          if (index != -1) {
-            messagesData[index] = messagesData[index].copyWith(
-              isEnviando: true,
-              isEntregado: false,
-            );
-          }
-        });
-      }
-
-      //  Detectar la SIM correcta según la operadora seleccionada
-      int simSlot = 0; // Por defecto
-
-      if (_operadoraSeleccionada.isNotEmpty && _availableSimCards.isNotEmpty) {
-        print('Operadora seleccionada: $_operadoraSeleccionada');
-
-        // Buscar la SIM que corresponde a la operadora seleccionada
-        for (final sim in _availableSimCards) {
-          final carrierName =
-              (sim['carrierName'] as String?)?.toLowerCase() ?? '';
-          final displayName =
-              (sim['displayName'] as String?)?.toLowerCase() ?? '';
-
-          // Detectar si es la operadora seleccionada
-          if (_detectOperador(carrierName, displayName) ==
-              _operadoraSeleccionada) {
-            final slotIndex = sim['slotIndex'] as int?;
-            if (slotIndex != null) {
-              simSlot = slotIndex;
-              print('SIM detectada: ${sim['displayName']} (Slot: $simSlot)');
-              break;
-            }
-          }
-        }
-      } else {
-        print('Operadora no seleccionada, usando SIM slot 0');
-      }
-
-      // Enviar el SMS usando el servicio
-      final smsSent = await SmsService.sendSms(
-        phoneNumber: phoneNumber,
-        message: messageText,
-        simSlot: simSlot,
-      );
-
-      // Actualizar el estado del mensaje según el resultado
-      if (mounted) {
-        setState(() {
-          final index = messagesData.indexWhere((msg) => msg.id == message.id);
-          if (index != -1) {
-            if (smsSent) {
-              // SMS enviado correctamente - mostrar check
-              messagesData[index] = messagesData[index].copyWith(
-                isEnviando: false,
-                isEntregado: true,
-              );
-              print(
-                'SMS enviado automáticamente a $phoneNumber con SIM slot $simSlot',
-              );
-
-              // Mostrar notificación de éxito
-              _backgroundService.showSuccessNotification(
-                'SMS Enviado a $phoneNumber',
-              );
-            } else {
-              // Error al enviar - volver a mostrar usuario
-              messagesData[index] = messagesData[index].copyWith(
-                isEnviando: false,
-                isEntregado: false,
-              );
-              print('No se pudo enviar el SMS automáticamente');
-
-              // Mostrar notificación de error
-              _backgroundService.showErrorNotification(
-                'No se pudo enviar el mensaje a $phoneNumber',
-              );
-            }
-          }
-        });
-      }
-    } catch (e) {
-      print('Error en envío automático de SMS: $e');
-      // En caso de error, actualizar el estado
-      if (mounted) {
-        setState(() {
-          final index = messagesData.indexWhere((msg) => msg.id == message.id);
-          if (index != -1) {
-            messagesData[index] = messagesData[index].copyWith(
-              isEnviando: false,
-              isEntregado: false,
-            );
-          }
-        });
-      }
-    }
   }
 
   Future<void> _comprarPaqueteDirecto(String ussdCode) async {
@@ -1125,75 +910,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       body: SafeArea(
         child: Column(
           children: [
-            // Banner de control del servicio de background
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: _isBackgroundServiceRunning
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.orange.withOpacity(0.1),
-                border: Border(
-                  bottom: BorderSide(
-                    color: _isBackgroundServiceRunning
-                        ? Colors.green
-                        : Colors.orange,
-                    width: 2,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    _isBackgroundServiceRunning
-                        ? Icons.cloud_done
-                        : Icons.cloud_off,
-                    color: _isBackgroundServiceRunning
-                        ? Colors.green
-                        : Colors.orange,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _isBackgroundServiceRunning
-                          ? 'Servicio activo - SMS automáticos habilitados'
-                          : 'Servicio detenido - SMS solo en primer plano',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: _isBackgroundServiceRunning
-                            ? Colors.green.shade700
-                            : Colors.orange.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _isBackgroundServiceRunning
-                        ? _stopBackgroundService
-                        : _startBackgroundService,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isBackgroundServiceRunning
-                          ? Colors.red
-                          : Colors.green,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      minimumSize: const Size(0, 0),
-                    ),
-                    child: Text(
-                      _isBackgroundServiceRunning ? 'Detener' : 'Iniciar',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
