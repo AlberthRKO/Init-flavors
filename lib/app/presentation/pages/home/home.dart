@@ -986,7 +986,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: PreferredSize(
+      /* appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: CustomAppbar(
           user: UserModel(
@@ -998,10 +998,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           // Solo permitir cambiar línea si hay más de 1 SIM
           onChange: _availableSimCards.length > 1 ? _showOperadoraModal : null,
         ),
-      ),
+      ), */
       body: SafeArea(
         child: Column(
           children: [
+            CustomAppbar(
+              user: UserModel(
+                nombreCompleto: _deviceInfo,
+              ),
+              operadora: _operadoraSeleccionada,
+              onConsultar: _consultarSaldo,
+              onComprarPaquete: _comprarPaqueteDirecto,
+              // Solo permitir cambiar línea si hay más de 1 SIM
+              onChange: _availableSimCards.length > 1
+                  ? _showOperadoraModal
+                  : null,
+            ),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Container(
@@ -1052,7 +1065,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       ? 'Conectando al servidor...'
                                       : 'Desconectado',
                                   style: TextStyle(
-                                    fontSize: responsive.heightPercent(1.5),
+                                    fontSize: responsive.heightPercent(1.4),
                                     color: _isWebSocketConnected
                                         ? primary
                                         : _isServiceRunning
@@ -1075,9 +1088,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       color: _isServiceRunning ? Colors.red : primary,
                       iconActive: true,
                       icon: 'paper.svg',
-                      fontSize: responsive.heightPercent(1.4),
+                      fontSize: responsive.heightPercent(1.2),
                       sizeHeight: 30,
-                      sizeWidth: 100,
+                      sizeWidth: responsive.widthPercent(15),
                       isShadow: true,
                     ),
                   ],
