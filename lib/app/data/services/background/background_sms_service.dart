@@ -4,7 +4,7 @@ import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
+import 'package:gw_sms/app/domain/models/message/message_model.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 @pragma('vm:entry-point')
@@ -99,17 +99,14 @@ class BackgroundSmsService {
           // ignore: lines_longer_than_80_chars
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZnoyYldMY1Q4NGZUQm9aU0ZkbkVJSFVqUW03eWRDZFR1dDk4K3Vkd0p4OXRTY1dFZEY4VGExajQ0c0g3RWxyYWFrdWtHYnRFVzJIeUt4cEk5NnJ6QVpHZDVVYU8vRU9HdjlUVXB5VEFKTTc3S3dXMkdQUHVVN0lNbm53K1VCK3YxdDJ0aFYrWU5RTUtsVU1OR2ZuWnUvUEpJdlpOMFBLbCttc0FZMThuUks2TFlRUHpGTjUxVEk4L1JhRndZOWdnckZtWExZZWZSeTk3TXpBQStwekE4VkYwU0szamd0ZGpKUFRNTFl3ZGUrQXEyNW5EL0hSaXZqSHNLaGFvbjZmZG5FcnRIdisvQ21CQXR6TGRPS2RCZmUrMm5UWnpBbjhXMStvWEt5YTEwN3ZvKzFNZjI5ZElvV2dzSlF1bDcxOXRDdnoyN0hCUzQxOCt2TW9jcEZ2bmx6S3A5Y05JdkExdEdIMVlxdXlKOTJlQlJqZ1MvMGIyanc2a0k2dGo2Q3UwaUpCNU5uUVgvNnVpc3QyemZ5dGdRT2crYmZlTDY0VW5ZTFRITlNDQitRbFhsTVY3bWNNYzVHT2RKSGIwbUFaeElxSTdKdkxtck1lZkpGRDVkRk5CczlCRFNucnBrMndIT0ZCdlRjY1MxTFNhV09TWjdNM3ljdHQ0WFl0UDFHWGZqbzZNeXJpVGFMbzhNbGhUOW14T1BDM0JMQ1MxR2FzbHVySGRNbWp6Z3c3WE9QWmlFWG9GdG5VWWVmSWI1eTV5QWlpNnZLODYzSFVqRDh6RlQ5cVVGaEhpUC94OUwyaW8wZ0tXRHY4RHJVQmRaTkw2Ritma3ZnckVoTGxLQzFwc2tvbHd3MEYzdHltM0hSdFRlK1pVUT09IiwiaXYiOiIwaXN6WGVKM0p6K0xlczhQY0VKbGFBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcwMDQ1OTIyLCJleHAiOjE3NzAxMzIzMjJ9.CeoJ_LnbW0UdstmaAO1U6Z3HTgNCGIMByRUzWpKy5BQ';
 
-      const url =
-          'https://ms-websocket-ws.dev.mp.gob.bo/chat?usuarioId=$ususarioId&aplicacion=roma';
+      const url = 'https://r05290mh-3515.brs.devtunnels.ms';
 
       _socket = IO.io(
         url,
         IO.OptionBuilder()
             .setTransports(['websocket'])
             .disableAutoConnect()
-            .setExtraHeaders({'Authorization': token})
-            .setAuth({'token': token})
-            .build(),
+            .build(), // ← SIN headers, SIN auth, SIN queries
       );
 
       _socket!.onConnect((_) {
@@ -121,6 +118,16 @@ class BackgroundSmsService {
       _socket!.on('receiveMessage', (data) async {
         print('📨 Mensaje recibido en background: $data');
         await _handleIncomingMessage(data);
+      });
+      // Escuchar NUEVOS mensajes (cuando se crea)
+      _socket!.on('send-message', (data) async {
+        print('📨 Nuevo mensaje: $data');
+        await _handleIncomingMessage(data);
+      });
+
+      // Escuchar ACTUALIZACIONES de estado
+      _socket!.on('send-message-status', (data) {
+        print('📊 Estado actualizado: $data');
       });
 
       _socket!.onDisconnect((_) {
@@ -159,26 +166,19 @@ class BackgroundSmsService {
 
       // Extraer el mensaje del objeto data
       final dataMap = data as Map<String, dynamic>;
-      final messageData = dataMap['message'] as Map<String, dynamic>?;
-
-      if (messageData == null) {
-        print('⚠️ No se encontró el campo "message" en los datos recibidos');
-        return;
-      }
-
-      // Parsear el mensaje
-      final message = MessageDataModel.fromJson(messageData);
+      final message = MessageModel.fromJson(dataMap);
 
       // Obtener el CI del sender y el mensaje
-      final senderCI = message.sender?.ci;
+      final senderCI = message.user?.ci;
       final messageText = message.message;
 
-      // Validar CI (puede ser int o String)
+      // Validar CI (convertir a String si es necesario)
       if (senderCI == null) {
         print('⚠️ Mensaje sin CI del remitente');
         return;
       }
 
+      // Convertir CI a String (puede venir como int o String del JSON)
       final ciString = senderCI;
       if (ciString.isEmpty) {
         print('⚠️ CI del remitente vacío');
@@ -190,25 +190,34 @@ class BackgroundSmsService {
         return;
       }
 
-      // Número de teléfono estático por ahora
-      const phoneNumber = '+59163354864';
+      // Número de teléfono del mensaje
+      final phoneNumber = message.phone;
+
+      if (phoneNumber == null || phoneNumber.isEmpty) {
+        print('⚠️ Mensaje sin número de teléfono');
+        return;
+      }
 
       print('📱 Preparando envío de SMS...');
+      print('   Message ID: ${message.messageId}');
       print('   Destinatario CI: $ciString');
       print('   Número: $phoneNumber');
       print('   Mensaje: $messageText');
+      print('   Tipo: ${message.messageType}');
       print('   SIM slot: $_simSlot');
 
       // Notificar al UI que llegó un nuevo mensaje (para actualizar la lista)
       service.invoke('newMessage', {
-        'message': messageData,
+        'message': message.toJson(),
       });
 
       // Notificar al UI principal para que envíe el SMS
       // Ya que no podemos enviar SMS directamente desde background
       service.invoke('sendSmsRequest', {
+        'messageId': message.messageId,
         'phoneNumber': phoneNumber,
         'message': messageText,
+        'messageType': message.messageType,
         'simSlot': _simSlot,
         'ci': ciString,
       });

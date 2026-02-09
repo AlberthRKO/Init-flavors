@@ -10,7 +10,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/data/services/background/background_service_helper.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
-import 'package:gw_sms/app/domain/models/message_chat/message_data/message_data_model.dart';
+import 'package:gw_sms/app/domain/models/message/message_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/theme/colors.dart';
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _isWebSocketConnected = false;
   bool _isServiceRunning = false;
 
-  final List<MessageDataModel> messagesData = [];
+  final List<MessageModel> messagesData = [];
   StreamSubscription<dynamic>? _backgroundSmsSuccessSubscription;
   StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
   StreamSubscription<dynamic>? _newMessageSubscription;
@@ -95,56 +95,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       event,
     ) {
       if (event != null && mounted) {
-        final messageData = event['message'] as Map<String, dynamic>?;
+        final messageData = event as Map<String, dynamic>?;
         if (messageData == null) return;
 
-        final newMessage = MessageDataModel.fromJson(messageData);
+        final newMessage = MessageModel.fromJson(messageData);
 
         setState(() {
           // Si el mensaje tiene un response (calificación), buscar el mensaje original y actualizarlo
-          if (newMessage.response != null) {
+          if (newMessage != null) {
             // Buscar el mensaje original por ID y actualizarlo con la calificación
             final int index = messagesData.indexWhere(
-              (msg) => msg.id == newMessage.id,
+              (msg) => msg.messageId == newMessage.messageId,
             );
             if (index != -1) {
               // Actualizar el mensaje existente con la calificación
               messagesData[index] = newMessage;
-              print('Mensaje actualizado con calificación: ${newMessage.id}');
+              print(
+                'Mensaje actualizado con calificación: ${newMessage.messageId}',
+              );
             } else {
               // Si no se encuentra, agregarlo como mensaje nuevo
               messagesData.insert(0, newMessage);
               print(
-                'Mensaje con calificación agregado como nuevo: ${newMessage.id}',
+                'Mensaje con calificación agregado como nuevo: ${newMessage.messageId}',
               );
-            }
-          } else {
-            // Es un mensaje nuevo sin calificación
-            if (newMessage.esCliente ?? false) {
-              // Solo agregamos mensajes del cliente si no hay duplicados
-              final bool alreadyExists = messagesData.any(
-                (msg) =>
-                    msg.message == newMessage.message &&
-                    (msg.esCliente ?? false) &&
-                    (msg.createdAt
-                                ?.difference(
-                                  newMessage.createdAt ?? DateTime.now(),
-                                )
-                                .abs()
-                                .inSeconds ??
-                            0) <
-                        5,
-              );
-
-              if (!alreadyExists) {
-                messagesData.insert(0, newMessage);
-                print('Mensaje del cliente agregado: ${newMessage.id}');
-              }
-            } else {
-              // Mensajes del servidor siempre se agregan
-              messagesData.insert(0, newMessage);
-              print('Mensaje del servidor agregado: ${newMessage.id}');
-              // El SMS será enviado automáticamente por el background service
             }
           }
         });
@@ -1090,7 +1064,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       icon: 'paper.svg',
                       fontSize: responsive.heightPercent(1.2),
                       sizeHeight: 30,
-                      sizeWidth: responsive.widthPercent(15),
+                      sizeWidth: 80,
                       isShadow: true,
                     ),
                   ],
@@ -1147,7 +1121,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           onTap: () {
                             // Navegar al chat individual
                             print(
-                              'Abrir chat con ${chat.sender?.ci ?? 'Número desconocido'}',
+                              'Abrir chat con ${chat.user?.ci ?? 'Número desconocido'}',
                             );
                           },
                           child: Padding(
@@ -1217,7 +1191,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              chat.sender?.ci ??
+                                              chat.user?.ci ??
                                                   'Número desconocido',
                                               style: TextStyle(
                                                 fontSize: responsive
@@ -1233,7 +1207,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                           Text(
                                             chat.createdAt != null
                                                 ? TimeOfDay.fromDateTime(
-                                                    chat.createdAt!,
+                                                    DateTime.parse(
+                                                      chat.createdAt!,
+                                                    ),
                                                   ).format(context)
                                                 : '',
                                             style: TextStyle(
