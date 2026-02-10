@@ -256,7 +256,7 @@ class BackgroundSmsService {
         'isConnected': isConnected ?? false,
         'operadora': _operadoraSeleccionada,
         'simSlot': _simSlot,
-        'error': ?error,
+        'error': error,
       },
     );
   }
@@ -272,9 +272,9 @@ class BackgroundSmsService {
       {
         'status': status,
         'timestamp': DateTime.now().toIso8601String(),
-        'phoneNumber': ?phoneNumber,
-        'message': ?message,
-        'error': ?error,
+        'phoneNumber': phoneNumber,
+        'message': message,
+        'error': error,
       },
     );
   }
@@ -345,8 +345,7 @@ class BackgroundSmsService {
 
     await _notificationsPlugin
         .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
 
