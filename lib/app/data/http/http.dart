@@ -3,15 +3,13 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:gw_sms/app/data/services/local/token_services.dart';
 import 'package:gw_sms/app/domain/either/either.dart';
 import 'package:gw_sms/app/domain/models/error/error_model.dart';
 import 'package:gw_sms/app/presentation/global/utils/constants.dart';
 import 'package:http/http.dart';
 
 class Http {
-  Http(
-    this._ipServices, {
+  Http({
     required Client client,
     required String baseUrl,
     required String userAgent,
@@ -27,7 +25,6 @@ class Http {
   final String _baseUrl;
   final String _userAgent;
   final String _ip;
-  final IpServices _ipServices;
   final String? _uniqueDeviceId;
 
   String get xAplicacion => appMp;

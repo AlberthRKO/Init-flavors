@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:gw_sms/app/data/services/background/background_sms_service.dart';
+import 'package:gw_sms/app/domain/either/either.dart';
+import 'package:gw_sms/app/domain/repositories/ms_sms_repository.dart';
 import 'package:gw_sms/app/domain/services/sms_service.dart';
 
 class BackgroundServiceHelper {
@@ -22,6 +24,14 @@ class BackgroundServiceHelper {
   StreamSubscription<dynamic>? _statusSubscription;
   StreamSubscription<dynamic>? _smsStatusSubscription;
   StreamSubscription<dynamic>? _smsRequestSubscription;
+
+  // Repository para actualizar estados de mensajes
+  MsSmsRepository? _repository;
+
+  /// Establece el repositorio para actualizar estados de mensajes
+  void setRepository(MsSmsRepository repository) {
+    _repository = repository;
+  }
 
   /// Inicializa el servicio de background
   Future<bool> initializeService() async {
@@ -154,11 +164,12 @@ class BackgroundServiceHelper {
     ) async {
       if (event != null) {
         print('📨 Solicitud de SMS recibida desde background: $event');
+        final messageId = event['messageId'] as String?;
         final phoneNumber = event['phoneNumber'] as String?;
         final message = event['message'] as String?;
         final simSlot = event['simSlot'] as int? ?? 0;
 
-        if (phoneNumber != null && message != null) {
+        if (phoneNumber != null && message != null && messageId != null) {
           try {
             // Enviar el SMS desde el contexto del UI (con Activity disponible)
             final sent = await SmsService.sendSms(
@@ -176,8 +187,12 @@ class BackgroundServiceHelper {
                 'Mensaje: $message',
               );
 
+              // Actualizar estado del mensaje a enviado (status = 1)
+              await _updateMessageStatus(messageId, 1);
+
               // Notificar éxito con los datos del mensaje
               _service.invoke('smsSentSuccess', {
+                'messageId': messageId,
                 'phoneNumber': phoneNumber,
                 'message': message,
                 'simSlot': simSlot,
@@ -189,8 +204,12 @@ class BackgroundServiceHelper {
                 'No se pudo enviar a $phoneNumber',
               );
 
+              // Actualizar estado del mensaje a fallido (status = 2)
+              await _updateMessageStatus(messageId, 2);
+
               // Notificar fallo
               _service.invoke('smsSentFailed', {
+                'messageId': messageId,
                 'phoneNumber': phoneNumber,
                 'message': message,
               });
@@ -201,6 +220,11 @@ class BackgroundServiceHelper {
               '✗ Error al Enviar SMS',
               'Error: $e',
             );
+
+            // Actualizar estado del mensaje a fallido (status = 2)
+            if (messageId != null) {
+              await _updateMessageStatus(messageId, 2);
+            }
           }
         }
       }
@@ -223,6 +247,30 @@ class BackgroundServiceHelper {
         }
       }
     });
+  }
+
+  /// Actualiza el estado del mensaje en el servidor
+  Future<void> _updateMessageStatus(String messageId, int status) async {
+    if (_repository == null) {
+      print('⚠️ Repository no configurado, no se puede actualizar estado');
+      return;
+    }
+
+    try {
+      print('🔄 Actualizando estado del mensaje $messageId a $status');
+      final result = await _repository!.setChangeStateMsj(messageId, status);
+
+      result.when(
+        left: (error) {
+          print('❌ Error al actualizar estado: ${error.message}');
+        },
+        right: (_) {
+          print('✅ Estado del mensaje actualizado exitosamente a $status');
+        },
+      );
+    } catch (e) {
+      print('❌ Error al actualizar estado del mensaje: $e');
+    }
   }
 
   /// Inicializa el sistema de notificaciones

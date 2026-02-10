@@ -10,8 +10,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gw_sms/app/data/services/background/background_service_helper.dart';
 import 'package:gw_sms/app/data/services/utils/local_providers.dart';
+import 'package:gw_sms/app/domain/either/either.dart';
+import 'package:gw_sms/app/domain/models/error/error_model.dart';
 import 'package:gw_sms/app/domain/models/message/message_model.dart';
 import 'package:gw_sms/app/domain/models/user/user_model.dart';
+import 'package:gw_sms/app/domain/repositories/ms_sms_repository.dart';
 import 'package:gw_sms/app/domain/services/ussd_command_service.dart';
 import 'package:gw_sms/app/presentation/global/theme/colors.dart';
 import 'package:gw_sms/app/presentation/global/utils/complemento.dart';
@@ -67,25 +70,84 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final _backgroundService = BackgroundServiceHelper();
   bool _isWebSocketConnected = false;
   bool _isServiceRunning = false;
-
-  final List<MessageModel> messagesData = [];
   StreamSubscription<dynamic>? _backgroundSmsSuccessSubscription;
   StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
   StreamSubscription<dynamic>? _newMessageSubscription;
   StreamSubscription<dynamic>? _serviceStatusSubscription;
 
+  MsSmsRepository get _smsRespository => context.read();
+  bool _hasMore = true;
+  int page = 2;
+  bool isLoadingChat = false;
+  final List<MessageModel> listMensajes = [];
+  String? search;
+
   @override
   void initState() {
     super.initState();
+    loadMessages(1, search);
+    _scrollController.addListener(() {
+      if (_scrollController.position.maxScrollExtent ==
+              _scrollController.offset &&
+          !isLoadingChat &&
+          _hasMore) {
+        loadMessages(page++, search);
+      }
+    });
     WidgetsBinding.instance.addObserver(this);
     _loadInitialData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
     });
-
     // Inicializar servicio de background (siempre activo)
     _initializeBackgroundService();
     _setupBackgroundListeners();
+  }
+
+  // ignore: strict_raw_type
+  Future loadMessages(int paginate, String? search) async {
+    if (isLoadingChat) return;
+    setState(() {
+      isLoadingChat = true;
+    });
+
+    final Either<ErrorModel, List<MessageModel>> result = await _smsRespository
+        .getMensajes(paginate, 10, search);
+    result.when(
+      left: (failure) {
+        setState(() {
+          isLoadingChat = false;
+        });
+        showMaterialModalBottomSheet(
+          isDismissible: false,
+          enableDrag: false,
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (context) {
+            Future.delayed(const Duration(seconds: 2), () {
+              Navigator.pop(context);
+            });
+            return ModalError(
+              error: 'No se pudo obtener los mensajes: ${failure.message}',
+            );
+          },
+        );
+      },
+      right: (response) {
+        setState(() {
+          isLoadingChat = false;
+          if (response.isEmpty) {
+            _hasMore = false;
+          } else {
+            if (response.length < 10) {
+              // Cambiado a menor que el tamaño de la página
+              _hasMore = false;
+            }
+            listMensajes.addAll(response);
+          }
+        });
+      },
+    );
   }
 
   /// Configura listeners para eventos del servicio de background
@@ -95,29 +157,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       event,
     ) {
       if (event != null && mounted) {
-        final messageData = event as Map<String, dynamic>?;
+        final eventData = event as Map<String, dynamic>?;
+        if (eventData == null) return;
+
+        // Extraer el mensaje del evento (viene como {message: {...}})
+        final messageData = eventData['message'] as Map<String, dynamic>?;
         if (messageData == null) return;
 
         final newMessage = MessageModel.fromJson(messageData);
 
         setState(() {
-          // Si el mensaje tiene un response (calificación), buscar el mensaje original y actualizarlo
+          // Si el mensaje tiene datos, buscar el mensaje original y actualizarlo
           if (newMessage != null) {
-            // Buscar el mensaje original por ID y actualizarlo con la calificación
-            final int index = messagesData.indexWhere(
+            // Buscar el mensaje original por ID y actualizarlo
+            final int index = listMensajes.indexWhere(
               (msg) => msg.messageId == newMessage.messageId,
             );
             if (index != -1) {
-              // Actualizar el mensaje existente con la calificación
-              messagesData[index] = newMessage;
+              // Actualizar el mensaje existente
+              listMensajes[index] = newMessage;
               print(
-                'Mensaje actualizado con calificación: ${newMessage.messageId}',
+                'Mensaje actualizado: ${newMessage.messageId} - Status: ${newMessage.status}',
               );
             } else {
-              // Si no se encuentra, agregarlo como mensaje nuevo
-              messagesData.insert(0, newMessage);
+              // Si no se encuentra, agregarlo como mensaje nuevo al inicio
+              listMensajes.insert(0, newMessage);
               print(
-                'Mensaje con calificación agregado como nuevo: ${newMessage.messageId}',
+                'Mensaje nuevo agregado: ${newMessage.messageId}',
               );
             }
           }
@@ -130,23 +196,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         .on('smsSentSuccess')
         .listen((event) {
           if (event != null && mounted) {
+            final messageId = event['messageId'] as String?;
             final phoneNumber = event['phoneNumber'] as String?;
             final message = event['message'] as String?;
 
             print('✅ SMS enviado desde background: $phoneNumber - $message');
 
-            // Buscar el mensaje en la lista y marcarlo como entregado
-            if (message != null) {
+            // Buscar el mensaje en la lista y actualizar su status a 1 (enviado)
+            if (messageId != null) {
               setState(() {
-                final index = messagesData.indexWhere(
-                  (msg) => msg.message == message && (!msg.isEntregado),
+                final index = listMensajes.indexWhere(
+                  (msg) => msg.messageId == messageId,
                 );
                 if (index != -1) {
-                  messagesData[index] = messagesData[index].copyWith(
-                    isEnviando: false,
-                    isEntregado: true,
+                  listMensajes[index] = listMensajes[index].copyWith(
+                    status: 1,
                   );
-                  print('✅ Mensaje marcado como entregado en UI');
+                  print('✅ Mensaje marcado como enviado (status=1) en UI');
                 }
               });
             }
@@ -158,22 +224,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         .on('smsSentFailed')
         .listen((event) {
           if (event != null && mounted) {
+            final messageId = event['messageId'] as String?;
             final message = event['message'] as String?;
 
             print('❌ Fallo en envío SMS desde background: $message');
 
-            // Buscar el mensaje y marcarlo como no entregado
-            if (message != null) {
+            // Buscar el mensaje y actualizar su status a 2 (fallido)
+            if (messageId != null) {
               setState(() {
-                final index = messagesData.indexWhere(
-                  (msg) => msg.message == message,
+                final index = listMensajes.indexWhere(
+                  (msg) => msg.messageId == messageId,
                 );
                 if (index != -1) {
-                  messagesData[index] = messagesData[index].copyWith(
-                    isEnviando: false,
-                    isEntregado: false,
+                  listMensajes[index] = listMensajes[index].copyWith(
+                    status: 2,
                   );
-                  print('❌ Mensaje marcado como no entregado en UI');
+                  print('❌ Mensaje marcado como fallido (status=2) en UI');
                 }
               });
             }
@@ -199,6 +265,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Inicializa el servicio de background para SMS (siempre activo)
   Future<void> _initializeBackgroundService() async {
     try {
+      // Configurar el repositorio en el servicio de background
+      _backgroundService.setRepository(_smsRespository);
+
       // Inicializar el servicio (se inicia automáticamente)
       final initialized = await _backgroundService.initializeService();
       if (!initialized) {
@@ -1062,9 +1131,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       color: _isServiceRunning ? Colors.red : primary,
                       iconActive: true,
                       icon: 'paper.svg',
-                      fontSize: responsive.heightPercent(1.2),
+                      fontSize: 12,
                       sizeHeight: 30,
-                      sizeWidth: 80,
+                      sizeWidth: 100,
                       isShadow: true,
                     ),
                   ],
@@ -1109,14 +1178,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: ListView.separated(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: messagesData.length,
+                      itemCount: listMensajes.length,
                       separatorBuilder: (context, index) => Divider(
                         height: 1,
                         indent: 80,
                         color: Colors.grey.withOpacity(0.2),
                       ),
                       itemBuilder: (context, index) {
-                        final chat = messagesData[index];
+                        final chat = listMensajes[index];
                         return InkWell(
                           onTap: () {
                             // Navegar al chat individual
@@ -1144,28 +1213,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Center(
-                                    child: chat.isEnviando
-                                        ? SizedBox(
+                                    child: chat.status == 0
+                                        ? SvgPicture.asset(
+                                            'assets/images/icons/estado.svg',
                                             width: responsive.heightPercent(
                                               2.5,
                                             ),
-                                            height: responsive.heightPercent(
-                                              2.5,
-                                            ),
-                                            child:
-                                                const CircularProgressIndicator(
-                                                  valueColor:
-                                                      AlwaysStoppedAnimation<
-                                                        Color
-                                                      >(
-                                                        Colors.white,
-                                                      ),
-                                                  strokeWidth: 2,
-                                                ),
+                                            color: Colors.white,
                                           )
-                                        : chat.isEntregado
+                                        : chat.status == 1
                                         ? SvgPicture.asset(
                                             'assets/images/icons/check.svg',
+                                            width: responsive.heightPercent(
+                                              2.5,
+                                            ),
+                                            color: Colors.white,
+                                          )
+                                        : chat.status == 2
+                                        ? SvgPicture.asset(
+                                            'assets/images/icons/close.svg',
                                             width: responsive.heightPercent(
                                               2.5,
                                             ),
@@ -1191,7 +1257,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              chat.user?.ci ??
+                                              chat.phone ??
                                                   'Número desconocido',
                                               style: TextStyle(
                                                 fontSize: responsive

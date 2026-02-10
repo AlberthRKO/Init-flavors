@@ -18,11 +18,9 @@ _MessageModel _$MessageModelFromJson(Map<String, dynamic> json) =>
       phone: json['phone'] as String?,
       mode: json['mode'] as String?,
       messageType: (json['messageType'] as num?)?.toInt(),
-      status: _statusFromJson(json['status']),
+      status: (json['status'] as num?)?.toInt(),
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
-      isEntregado: json['isEntregado'] as bool? ?? false,
-      isEnviando: json['isEnviando'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
@@ -38,6 +36,4 @@ Map<String, dynamic> _$MessageModelToJson(_MessageModel instance) =>
       'status': instance.status,
       'createdAt': instance.createdAt,
       'updatedAt': instance.updatedAt,
-      'isEntregado': instance.isEntregado,
-      'isEnviando': instance.isEnviando,
     };

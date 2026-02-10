@@ -15,33 +15,11 @@ abstract class MessageModel with _$MessageModel {
     String? phone,
     String? mode,
     int? messageType,
-    @JsonKey(fromJson: _statusFromJson) String? status,
+    int? status, // 0 = Pendiente, 1 = Enviado, 2 = Fallido
     String? createdAt,
     String? updatedAt,
-    @Default(false) bool isEntregado,
-    @Default(false) bool isEnviando,
   }) = _MessageModel;
 
   factory MessageModel.fromJson(Map<String, dynamic> json) =>
       _$MessageModelFromJson(json);
-}
-
-/// Conversor para manejar status como int o String del JSON
-/// 0 = Pendiente, 1 = Enviado, 2 = Fallido
-String? _statusFromJson(dynamic value) {
-  if (value == null) return null;
-  if (value is String) return value;
-  if (value is int) {
-    switch (value) {
-      case 0:
-        return 'pendiente';
-      case 1:
-        return 'enviado';
-      case 2:
-        return 'fallido';
-      default:
-        return value.toString();
-    }
-  }
-  return null;
 }

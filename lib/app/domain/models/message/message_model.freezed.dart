@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MessageModel {
 
- String? get messageId; String? get chatId; String? get message; String? get app; MessageUserModel? get user; String? get phone; String? get mode; int? get messageType;@JsonKey(fromJson: _statusFromJson) String? get status; String? get createdAt; String? get updatedAt; bool get isEntregado; bool get isEnviando;
+ String? get messageId; String? get chatId; String? get message; String? get app; MessageUserModel? get user; String? get phone; String? get mode; int? get messageType; int? get status;// 0 = Pendiente, 1 = Enviado, 2 = Fallido
+ String? get createdAt; String? get updatedAt;
 /// Create a copy of MessageModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +29,16 @@ $MessageModelCopyWith<MessageModel> get copyWith => _$MessageModelCopyWithImpl<M
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageModel&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.message, message) || other.message == message)&&(identical(other.app, app) || other.app == app)&&(identical(other.user, user) || other.user == user)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isEntregado, isEntregado) || other.isEntregado == isEntregado)&&(identical(other.isEnviando, isEnviando) || other.isEnviando == isEnviando));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageModel&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.message, message) || other.message == message)&&(identical(other.app, app) || other.app == app)&&(identical(other.user, user) || other.user == user)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,messageId,chatId,message,app,user,phone,mode,messageType,status,createdAt,updatedAt,isEntregado,isEnviando);
+int get hashCode => Object.hash(runtimeType,messageId,chatId,message,app,user,phone,mode,messageType,status,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'MessageModel(messageId: $messageId, chatId: $chatId, message: $message, app: $app, user: $user, phone: $phone, mode: $mode, messageType: $messageType, status: $status, createdAt: $createdAt, updatedAt: $updatedAt, isEntregado: $isEntregado, isEnviando: $isEnviando)';
+  return 'MessageModel(messageId: $messageId, chatId: $chatId, message: $message, app: $app, user: $user, phone: $phone, mode: $mode, messageType: $messageType, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,7 +49,7 @@ abstract mixin class $MessageModelCopyWith<$Res>  {
   factory $MessageModelCopyWith(MessageModel value, $Res Function(MessageModel) _then) = _$MessageModelCopyWithImpl;
 @useResult
 $Res call({
- String? messageId, String? chatId, String? message, String? app, MessageUserModel? user, String? phone, String? mode, int? messageType,@JsonKey(fromJson: _statusFromJson) String? status, String? createdAt, String? updatedAt, bool isEntregado, bool isEnviando
+ String? messageId, String? chatId, String? message, String? app, MessageUserModel? user, String? phone, String? mode, int? messageType, int? status, String? createdAt, String? updatedAt
 });
 
 
@@ -65,7 +66,7 @@ class _$MessageModelCopyWithImpl<$Res>
 
 /// Create a copy of MessageModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? messageId = freezed,Object? chatId = freezed,Object? message = freezed,Object? app = freezed,Object? user = freezed,Object? phone = freezed,Object? mode = freezed,Object? messageType = freezed,Object? status = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? isEntregado = null,Object? isEnviando = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? messageId = freezed,Object? chatId = freezed,Object? message = freezed,Object? app = freezed,Object? user = freezed,Object? phone = freezed,Object? mode = freezed,Object? messageType = freezed,Object? status = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 messageId: freezed == messageId ? _self.messageId : messageId // ignore: cast_nullable_to_non_nullable
 as String?,chatId: freezed == chatId ? _self.chatId : chatId // ignore: cast_nullable_to_non_nullable
@@ -76,11 +77,9 @@ as MessageUserModel?,phone: freezed == phone ? _self.phone : phone // ignore: ca
 as String?,mode: freezed == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as String?,messageType: freezed == messageType ? _self.messageType : messageType // ignore: cast_nullable_to_non_nullable
 as int?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String?,isEntregado: null == isEntregado ? _self.isEntregado : isEntregado // ignore: cast_nullable_to_non_nullable
-as bool,isEnviando: null == isEnviando ? _self.isEnviando : isEnviando // ignore: cast_nullable_to_non_nullable
-as bool,
+as String?,
   ));
 }
 /// Create a copy of MessageModel
@@ -177,10 +176,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType, @JsonKey(fromJson: _statusFromJson)  String? status,  String? createdAt,  String? updatedAt,  bool isEntregado,  bool isEnviando)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType,  int? status,  String? createdAt,  String? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MessageModel() when $default != null:
-return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt,_that.isEntregado,_that.isEnviando);case _:
+return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -198,10 +197,10 @@ return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType, @JsonKey(fromJson: _statusFromJson)  String? status,  String? createdAt,  String? updatedAt,  bool isEntregado,  bool isEnviando)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType,  int? status,  String? createdAt,  String? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _MessageModel():
-return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt,_that.isEntregado,_that.isEnviando);case _:
+return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -218,10 +217,10 @@ return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType, @JsonKey(fromJson: _statusFromJson)  String? status,  String? createdAt,  String? updatedAt,  bool isEntregado,  bool isEnviando)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? messageId,  String? chatId,  String? message,  String? app,  MessageUserModel? user,  String? phone,  String? mode,  int? messageType,  int? status,  String? createdAt,  String? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _MessageModel() when $default != null:
-return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt,_that.isEntregado,_that.isEnviando);case _:
+return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,_that.phone,_that.mode,_that.messageType,_that.status,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -233,7 +232,7 @@ return $default(_that.messageId,_that.chatId,_that.message,_that.app,_that.user,
 @JsonSerializable()
 
 class _MessageModel implements MessageModel {
-   _MessageModel({this.messageId, this.chatId, this.message, this.app, this.user, this.phone, this.mode, this.messageType, @JsonKey(fromJson: _statusFromJson) this.status, this.createdAt, this.updatedAt, this.isEntregado = false, this.isEnviando = false});
+   _MessageModel({this.messageId, this.chatId, this.message, this.app, this.user, this.phone, this.mode, this.messageType, this.status, this.createdAt, this.updatedAt});
   factory _MessageModel.fromJson(Map<String, dynamic> json) => _$MessageModelFromJson(json);
 
 @override final  String? messageId;
@@ -244,11 +243,10 @@ class _MessageModel implements MessageModel {
 @override final  String? phone;
 @override final  String? mode;
 @override final  int? messageType;
-@override@JsonKey(fromJson: _statusFromJson) final  String? status;
+@override final  int? status;
+// 0 = Pendiente, 1 = Enviado, 2 = Fallido
 @override final  String? createdAt;
 @override final  String? updatedAt;
-@override@JsonKey() final  bool isEntregado;
-@override@JsonKey() final  bool isEnviando;
 
 /// Create a copy of MessageModel
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +261,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessageModel&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.message, message) || other.message == message)&&(identical(other.app, app) || other.app == app)&&(identical(other.user, user) || other.user == user)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isEntregado, isEntregado) || other.isEntregado == isEntregado)&&(identical(other.isEnviando, isEnviando) || other.isEnviando == isEnviando));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MessageModel&&(identical(other.messageId, messageId) || other.messageId == messageId)&&(identical(other.chatId, chatId) || other.chatId == chatId)&&(identical(other.message, message) || other.message == message)&&(identical(other.app, app) || other.app == app)&&(identical(other.user, user) || other.user == user)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,messageId,chatId,message,app,user,phone,mode,messageType,status,createdAt,updatedAt,isEntregado,isEnviando);
+int get hashCode => Object.hash(runtimeType,messageId,chatId,message,app,user,phone,mode,messageType,status,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'MessageModel(messageId: $messageId, chatId: $chatId, message: $message, app: $app, user: $user, phone: $phone, mode: $mode, messageType: $messageType, status: $status, createdAt: $createdAt, updatedAt: $updatedAt, isEntregado: $isEntregado, isEnviando: $isEnviando)';
+  return 'MessageModel(messageId: $messageId, chatId: $chatId, message: $message, app: $app, user: $user, phone: $phone, mode: $mode, messageType: $messageType, status: $status, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -283,7 +281,7 @@ abstract mixin class _$MessageModelCopyWith<$Res> implements $MessageModelCopyWi
   factory _$MessageModelCopyWith(_MessageModel value, $Res Function(_MessageModel) _then) = __$MessageModelCopyWithImpl;
 @override @useResult
 $Res call({
- String? messageId, String? chatId, String? message, String? app, MessageUserModel? user, String? phone, String? mode, int? messageType,@JsonKey(fromJson: _statusFromJson) String? status, String? createdAt, String? updatedAt, bool isEntregado, bool isEnviando
+ String? messageId, String? chatId, String? message, String? app, MessageUserModel? user, String? phone, String? mode, int? messageType, int? status, String? createdAt, String? updatedAt
 });
 
 
@@ -300,7 +298,7 @@ class __$MessageModelCopyWithImpl<$Res>
 
 /// Create a copy of MessageModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? messageId = freezed,Object? chatId = freezed,Object? message = freezed,Object? app = freezed,Object? user = freezed,Object? phone = freezed,Object? mode = freezed,Object? messageType = freezed,Object? status = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,Object? isEntregado = null,Object? isEnviando = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? messageId = freezed,Object? chatId = freezed,Object? message = freezed,Object? app = freezed,Object? user = freezed,Object? phone = freezed,Object? mode = freezed,Object? messageType = freezed,Object? status = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_MessageModel(
 messageId: freezed == messageId ? _self.messageId : messageId // ignore: cast_nullable_to_non_nullable
 as String?,chatId: freezed == chatId ? _self.chatId : chatId // ignore: cast_nullable_to_non_nullable
@@ -311,11 +309,9 @@ as MessageUserModel?,phone: freezed == phone ? _self.phone : phone // ignore: ca
 as String?,mode: freezed == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as String?,messageType: freezed == messageType ? _self.messageType : messageType // ignore: cast_nullable_to_non_nullable
 as int?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as int?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
-as String?,isEntregado: null == isEntregado ? _self.isEntregado : isEntregado // ignore: cast_nullable_to_non_nullable
-as bool,isEnviando: null == isEnviando ? _self.isEnviando : isEnviando // ignore: cast_nullable_to_non_nullable
-as bool,
+as String?,
   ));
 }
 
