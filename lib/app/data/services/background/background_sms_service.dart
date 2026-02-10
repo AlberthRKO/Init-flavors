@@ -99,7 +99,8 @@ class BackgroundSmsService {
           // ignore: lines_longer_than_80_chars
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZnoyYldMY1Q4NGZUQm9aU0ZkbkVJSFVqUW03eWRDZFR1dDk4K3Vkd0p4OXRTY1dFZEY4VGExajQ0c0g3RWxyYWFrdWtHYnRFVzJIeUt4cEk5NnJ6QVpHZDVVYU8vRU9HdjlUVXB5VEFKTTc3S3dXMkdQUHVVN0lNbm53K1VCK3YxdDJ0aFYrWU5RTUtsVU1OR2ZuWnUvUEpJdlpOMFBLbCttc0FZMThuUks2TFlRUHpGTjUxVEk4L1JhRndZOWdnckZtWExZZWZSeTk3TXpBQStwekE4VkYwU0szamd0ZGpKUFRNTFl3ZGUrQXEyNW5EL0hSaXZqSHNLaGFvbjZmZG5FcnRIdisvQ21CQXR6TGRPS2RCZmUrMm5UWnpBbjhXMStvWEt5YTEwN3ZvKzFNZjI5ZElvV2dzSlF1bDcxOXRDdnoyN0hCUzQxOCt2TW9jcEZ2bmx6S3A5Y05JdkExdEdIMVlxdXlKOTJlQlJqZ1MvMGIyanc2a0k2dGo2Q3UwaUpCNU5uUVgvNnVpc3QyemZ5dGdRT2crYmZlTDY0VW5ZTFRITlNDQitRbFhsTVY3bWNNYzVHT2RKSGIwbUFaeElxSTdKdkxtck1lZkpGRDVkRk5CczlCRFNucnBrMndIT0ZCdlRjY1MxTFNhV09TWjdNM3ljdHQ0WFl0UDFHWGZqbzZNeXJpVGFMbzhNbGhUOW14T1BDM0JMQ1MxR2FzbHVySGRNbWp6Z3c3WE9QWmlFWG9GdG5VWWVmSWI1eTV5QWlpNnZLODYzSFVqRDh6RlQ5cVVGaEhpUC94OUwyaW8wZ0tXRHY4RHJVQmRaTkw2Ritma3ZnckVoTGxLQzFwc2tvbHd3MEYzdHltM0hSdFRlK1pVUT09IiwiaXYiOiIwaXN6WGVKM0p6K0xlczhQY0VKbGFBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcwMDQ1OTIyLCJleHAiOjE3NzAxMzIzMjJ9.CeoJ_LnbW0UdstmaAO1U6Z3HTgNCGIMByRUzWpKy5BQ';
 
-      const url = 'https://r05290mh-3515.brs.devtunnels.ms';
+      //const url = 'https://r05290mh-3515.brs.devtunnels.ms';
+      const url = 'ws://172.27.38.56:3515';
 
       _socket = IO.io(
         url,
@@ -128,6 +129,7 @@ class BackgroundSmsService {
       // Escuchar ACTUALIZACIONES de estado
       _socket!.on('send-message-status', (data) {
         print('📊 Estado actualizado: $data');
+        _handleStatusUpdate(data);
       });
 
       _socket!.onDisconnect((_) {
@@ -275,6 +277,40 @@ class BackgroundSmsService {
         'error': ?error,
       },
     );
+  }
+
+  /// Maneja las actualizaciones de estado de mensajes desde el WebSocket
+  void _handleStatusUpdate(dynamic data) {
+    try {
+      print('🔄 Procesando actualización de estado...');
+
+      final dataMap = data as Map<String, dynamic>;
+      final messageId = dataMap['messageId'] as String?;
+      final status = dataMap['status'] as int?;
+      final chatId = dataMap['chatId'] as String?;
+
+      if (messageId == null || status == null) {
+        print('⚠️ Actualización de estado sin messageId o status');
+        return;
+      }
+
+      print('📱 Estado actualizado:');
+      print('   Message ID: $messageId');
+      print('   Nuevo estado: $status');
+      print('   Chat ID: $chatId');
+
+      // Notificar al UI del cambio de estado
+      service.invoke('messageStatusUpdate', {
+        'messageId': messageId,
+        'status': status,
+        'chatId': chatId,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ Notificación de estado enviada a UI');
+    } catch (e) {
+      print('❌ Error al procesar actualización de estado: $e');
+    }
   }
 
   void stop() {

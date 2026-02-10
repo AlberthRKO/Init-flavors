@@ -74,6 +74,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   StreamSubscription<dynamic>? _backgroundSmsFailedSubscription;
   StreamSubscription<dynamic>? _newMessageSubscription;
   StreamSubscription<dynamic>? _serviceStatusSubscription;
+  StreamSubscription<dynamic>? _messageStatusUpdateSubscription;
 
   MsSmsRepository get _smsRespository => context.read();
   bool _hasMore = true;
@@ -260,6 +261,54 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         );
       }
     });
+
+    // Escuchar actualizaciones de estado de mensajes desde WebSocket
+    _messageStatusUpdateSubscription = _backgroundService.service
+        .on('messageStatusUpdate')
+        .listen((event) {
+          if (event != null && mounted) {
+            final messageId = event['messageId'] as String?;
+            final status = event['status'] as int?;
+
+            if (messageId != null && status != null) {
+              print('🔄 Actualizando estado de mensaje $messageId a $status');
+
+              // Buscar el mensaje en la lista y actualizar su estado
+              final index = listMensajes.indexWhere(
+                (msg) => msg.messageId == messageId,
+              );
+
+              if (index != -1) {
+                setState(() {
+                  listMensajes[index] = listMensajes[index].copyWith(
+                    status: status,
+                  );
+                });
+                print('✅ Estado del mensaje actualizado en UI');
+
+                // Mostrar un SnackBar indicando el cambio de estado
+                final statusText = status == 1
+                    ? 'enviado exitosamente'
+                    : status == 2
+                    ? 'falló al enviar'
+                    : 'pendiente';
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Mensaje $statusText'),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: status == 1
+                        ? Colors.green
+                        : status == 2
+                        ? Colors.red
+                        : Colors.orange,
+                  ),
+                );
+              } else {
+                print('⚠️ Mensaje no encontrado en la lista: $messageId');
+              }
+            }
+          }
+        });
   }
 
   /// Inicializa el servicio de background para SMS (siempre activo)
@@ -395,6 +444,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _backgroundSmsSuccessSubscription?.cancel();
     _backgroundSmsFailedSubscription?.cancel();
     _serviceStatusSubscription?.cancel();
+    _messageStatusUpdateSubscription?.cancel();
     // El servicio de background sigue corriendo siempre
     super.dispose();
   }
