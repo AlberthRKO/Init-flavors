@@ -73,7 +73,6 @@ class Http {
       }
 
       final Map<String, String> requestHeaders = {
-        'x-aplicacion': isAppStatic ? 'roma' : xAplicacion,
         'x-user-ip': _ip,
         'user-agent': _userAgent,
         if (_uniqueDeviceId != null) 'x-dispositivo-unico': _uniqueDeviceId,

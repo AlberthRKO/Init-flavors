@@ -100,7 +100,7 @@ class BackgroundSmsService {
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZnoyYldMY1Q4NGZUQm9aU0ZkbkVJSFVqUW03eWRDZFR1dDk4K3Vkd0p4OXRTY1dFZEY4VGExajQ0c0g3RWxyYWFrdWtHYnRFVzJIeUt4cEk5NnJ6QVpHZDVVYU8vRU9HdjlUVXB5VEFKTTc3S3dXMkdQUHVVN0lNbm53K1VCK3YxdDJ0aFYrWU5RTUtsVU1OR2ZuWnUvUEpJdlpOMFBLbCttc0FZMThuUks2TFlRUHpGTjUxVEk4L1JhRndZOWdnckZtWExZZWZSeTk3TXpBQStwekE4VkYwU0szamd0ZGpKUFRNTFl3ZGUrQXEyNW5EL0hSaXZqSHNLaGFvbjZmZG5FcnRIdisvQ21CQXR6TGRPS2RCZmUrMm5UWnpBbjhXMStvWEt5YTEwN3ZvKzFNZjI5ZElvV2dzSlF1bDcxOXRDdnoyN0hCUzQxOCt2TW9jcEZ2bmx6S3A5Y05JdkExdEdIMVlxdXlKOTJlQlJqZ1MvMGIyanc2a0k2dGo2Q3UwaUpCNU5uUVgvNnVpc3QyemZ5dGdRT2crYmZlTDY0VW5ZTFRITlNDQitRbFhsTVY3bWNNYzVHT2RKSGIwbUFaeElxSTdKdkxtck1lZkpGRDVkRk5CczlCRFNucnBrMndIT0ZCdlRjY1MxTFNhV09TWjdNM3ljdHQ0WFl0UDFHWGZqbzZNeXJpVGFMbzhNbGhUOW14T1BDM0JMQ1MxR2FzbHVySGRNbWp6Z3c3WE9QWmlFWG9GdG5VWWVmSWI1eTV5QWlpNnZLODYzSFVqRDh6RlQ5cVVGaEhpUC94OUwyaW8wZ0tXRHY4RHJVQmRaTkw2Ritma3ZnckVoTGxLQzFwc2tvbHd3MEYzdHltM0hSdFRlK1pVUT09IiwiaXYiOiIwaXN6WGVKM0p6K0xlczhQY0VKbGFBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcwMDQ1OTIyLCJleHAiOjE3NzAxMzIzMjJ9.CeoJ_LnbW0UdstmaAO1U6Z3HTgNCGIMByRUzWpKy5BQ';
 
       //const url = 'https://r05290mh-3515.brs.devtunnels.ms';
-      const url = 'ws://172.27.38.56:3515';
+      const url = 'ws://ms-sms-v2.mp.gob.bo';
 
       _socket = IO.io(
         url,
@@ -123,7 +123,7 @@ class BackgroundSmsService {
       // Escuchar NUEVOS mensajes (cuando se crea)
       _socket!.on('send-message', (data) async {
         print('📨 Nuevo mensaje: $data');
-        await _handleIncomingMessage(data);
+        //await _handleIncomingMessage(data);
       });
 
       // Escuchar ACTUALIZACIONES de estado
@@ -345,7 +345,8 @@ class BackgroundSmsService {
 
     await _notificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
