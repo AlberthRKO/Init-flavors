@@ -171,7 +171,18 @@ class BackgroundServiceHelper {
 
         if (phoneNumber != null && message != null && messageId != null) {
           try {
+            // Analizar el mensaje antes de enviar
+            final analysis = SmsService.analyzeMessage(message);
+            print('📊 Análisis del mensaje: $analysis');
+
+            // Advertir si el mensaje es muy largo
+            if ((analysis['parts'] as int) > 3) {
+              print('⚠️ Mensaje muy largo: ${analysis['parts']} partes');
+            }
+
             // Enviar el SMS desde el contexto del UI (con Activity disponible)
+            // normalizeText: true - Convierte acentos a caracteres GSM-7 (recomendado para Bolivia)
+            // autoSplit: true - Divide mensajes largos automáticamente
             final sent = await SmsService.sendSms(
               phoneNumber: phoneNumber,
               message: message,
