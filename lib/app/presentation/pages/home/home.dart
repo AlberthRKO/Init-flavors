@@ -1,4 +1,4 @@
-// ignore_for_file: inference_failure_on_function_invocation
+// ignore_for_file: inference_failure_on_function_invocation, discarded_futures
 
 import 'dart:async';
 import 'dart:developer';
@@ -172,19 +172,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           if (newMessage != null) {
             // Buscar el mensaje original por ID y actualizarlo
             final int index = listMensajes.indexWhere(
-              (msg) => msg.messageId == newMessage.messageId,
+              (msg) => msg.id == newMessage.id,
             );
             if (index != -1) {
               // Actualizar el mensaje existente
               listMensajes[index] = newMessage;
               print(
-                'Mensaje actualizado: ${newMessage.messageId} - Status: ${newMessage.status}',
+                'Mensaje actualizado: ${newMessage.id} - Estado: ${newMessage.estado}',
               );
             } else {
               // Si no se encuentra, agregarlo como mensaje nuevo al inicio
               listMensajes.insert(0, newMessage);
               print(
-                'Mensaje nuevo agregado: ${newMessage.messageId}',
+                'Mensaje nuevo agregado: ${newMessage.id}',
               );
             }
           }
@@ -203,17 +203,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
             print('✅ SMS enviado desde background: $phoneNumber - $message');
 
-            // Buscar el mensaje en la lista y actualizar su status a 1 (enviado)
+            // Buscar el mensaje en la lista y actualizar su estado a "Enviado"
             if (messageId != null) {
               setState(() {
                 final index = listMensajes.indexWhere(
-                  (msg) => msg.messageId == messageId,
+                  (msg) => msg.id == messageId,
                 );
                 if (index != -1) {
                   listMensajes[index] = listMensajes[index].copyWith(
-                    status: 1,
+                    estado: 'Enviado',
                   );
-                  print('✅ Mensaje marcado como enviado (status=1) en UI');
+                  print('✅ Mensaje marcado como enviado en UI');
                 }
               });
             }
@@ -230,17 +230,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
             print('❌ Fallo en envío SMS desde background: $message');
 
-            // Buscar el mensaje y actualizar su status a 2 (fallido)
+            // Buscar el mensaje y actualizar su estado a "Fallido"
             if (messageId != null) {
               setState(() {
                 final index = listMensajes.indexWhere(
-                  (msg) => msg.messageId == messageId,
+                  (msg) => msg.id == messageId,
                 );
                 if (index != -1) {
                   listMensajes[index] = listMensajes[index].copyWith(
-                    status: 2,
+                    estado: 'Fallido',
                   );
-                  print('❌ Mensaje marcado como fallido (status=2) en UI');
+                  print('❌ Mensaje marcado como fallido en UI');
                 }
               });
             }
@@ -268,37 +268,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         .listen((event) {
           if (event != null && mounted) {
             final messageId = event['messageId'] as String?;
-            final status = event['status'] as int?;
+            final estado = event['estado'] as String?;
 
-            if (messageId != null && status != null) {
-              print('🔄 Actualizando estado de mensaje $messageId a $status');
+            if (messageId != null && estado != null) {
+              print('🔄 Actualizando estado de mensaje $messageId a $estado');
 
               // Buscar el mensaje en la lista y actualizar su estado
               final index = listMensajes.indexWhere(
-                (msg) => msg.messageId == messageId,
+                (msg) => msg.id == messageId,
               );
 
               if (index != -1) {
                 setState(() {
                   listMensajes[index] = listMensajes[index].copyWith(
-                    status: status,
+                    estado: estado,
                   );
                 });
                 print('✅ Estado del mensaje actualizado en UI');
 
                 // Mostrar un SnackBar indicando el cambio de estado
-                final statusText = status == 1
+                final statusText = estado == 'Enviado'
                     ? 'enviado exitosamente'
-                    : status == 2
+                    : estado == 'Fallido'
                     ? 'falló al enviar'
                     : 'pendiente';
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Mensaje $statusText'),
                     duration: const Duration(seconds: 2),
-                    backgroundColor: status == 1
+                    backgroundColor: estado == 'Enviado'
                         ? Colors.green
-                        : status == 2
+                        : estado == 'Fallido'
                         ? Colors.red
                         : Colors.orange,
                   ),
@@ -1225,173 +1225,189 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       _showBottombarScroll(context);
                       return true;
                     },
-                    child: ListView.separated(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: listMensajes.length,
-                      separatorBuilder: (context, index) => Divider(
-                        height: 1,
-                        indent: 80,
-                        color: Colors.grey.withOpacity(0.2),
-                      ),
-                      itemBuilder: (context, index) {
-                        final chat = listMensajes[index];
-                        return InkWell(
-                          onTap: () {
-                            // Navegar al chat individual
-                            print(
-                              'Abrir chat con ${chat.user?.ci ?? 'Número desconocido'}',
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                // Avatar con estado de entrega
-                                Container(
-                                  width: responsive.widthPercent(12),
-                                  height: responsive.widthPercent(12),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: _getGradientColors(index),
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Center(
-                                    child: chat.status == 0
-                                        ? SvgPicture.asset(
-                                            'assets/images/icons/estado.svg',
-                                            width: responsive.heightPercent(
-                                              2.5,
-                                            ),
-                                            color: Colors.white,
-                                          )
-                                        : chat.status == 1
-                                        ? SvgPicture.asset(
-                                            'assets/images/icons/check.svg',
-                                            width: responsive.heightPercent(
-                                              2.5,
-                                            ),
-                                            color: Colors.white,
-                                          )
-                                        : chat.status == 2
-                                        ? SvgPicture.asset(
-                                            'assets/images/icons/close.svg',
-                                            width: responsive.heightPercent(
-                                              2.5,
-                                            ),
-                                            color: Colors.white,
-                                          )
-                                        : SvgPicture.asset(
-                                            'assets/images/icons/user_icon.svg',
-                                            width: responsive.heightPercent(3),
-                                            color: Colors.white,
-                                          ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Contenido del mensaje
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              chat.phone ??
-                                                  'Número desconocido',
-                                              style: TextStyle(
-                                                fontSize: responsive
-                                                    .heightPercent(1.6),
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge!.color,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          Text(
-                                            chat.createdAt != null
-                                                ? TimeOfDay.fromDateTime(
-                                                    DateTime.parse(
-                                                      chat.createdAt!,
-                                                    ),
-                                                  ).format(context)
-                                                : '',
-                                            style: TextStyle(
-                                              fontSize: responsive
-                                                  .heightPercent(
-                                                    1.4,
-                                                  ),
-                                              color: Colors.grey,
-                                              fontWeight: FontWeight.normal,
-                                            ),
-                                          ),
-                                        ],
+                    child: RefreshIndicator(
+                      elevation: 0,
+                      onRefresh: () async {
+                        setState(() {
+                          listMensajes.clear();
+                          _hasMore = true;
+                          loadMessages(1, search);
+                          page = 2;
+                        });
+                      },
+                      child: ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: listMensajes.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          indent: 80,
+                          color: Colors.grey.withOpacity(0.2),
+                        ),
+                        itemBuilder: (context, index) {
+                          final chat = listMensajes[index];
+                          return InkWell(
+                            onTap: () {
+                              // Navegar al chat individual
+                              print(
+                                'Abrir chat con ${chat.origen?.usuario?.ci ?? 'Número desconocido'}',
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  // Avatar con estado de entrega
+                                  Container(
+                                    width: responsive.widthPercent(12),
+                                    height: responsive.widthPercent(12),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: _getGradientColors(index),
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              chat.message ?? '',
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Center(
+                                      child: chat.estado == 'Pendiente'
+                                          ? SvgPicture.asset(
+                                              'assets/images/icons/estado.svg',
+                                              width: responsive.heightPercent(
+                                                2.5,
+                                              ),
+                                              color: Colors.white,
+                                            )
+                                          : chat.estado == 'Enviado'
+                                          ? SvgPicture.asset(
+                                              'assets/images/icons/check.svg',
+                                              width: responsive.heightPercent(
+                                                2.5,
+                                              ),
+                                              color: Colors.white,
+                                            )
+                                          : chat.estado == 'Fallido'
+                                          ? SvgPicture.asset(
+                                              'assets/images/icons/close.svg',
+                                              width: responsive.heightPercent(
+                                                2.5,
+                                              ),
+                                              color: Colors.white,
+                                            )
+                                          : SvgPicture.asset(
+                                              'assets/images/icons/user_icon.svg',
+                                              width: responsive.heightPercent(
+                                                3,
+                                              ),
+                                              color: Colors.white,
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Contenido del mensaje
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                chat.destino?.numero ??
+                                                    'Número desconocido',
+                                                style: TextStyle(
+                                                  fontSize: responsive
+                                                      .heightPercent(1.6),
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge!.color,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Text(
+                                              chat.createdAt != null
+                                                  ? TimeOfDay.fromDateTime(
+                                                      DateTime.parse(
+                                                        chat.createdAt!,
+                                                      ),
+                                                    ).format(context)
+                                                  : '',
                                               style: TextStyle(
                                                 fontSize: responsive
-                                                    .heightPercent(1.4),
-                                                color: Colors.grey[600],
+                                                    .heightPercent(
+                                                      1.4,
+                                                    ),
+                                                color: Colors.grey,
+                                                fontWeight: FontWeight.normal,
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ),
-                                          /* if (chat.unreadCount > 0) ...[
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(
-                                                  context,
-                                                ).primaryColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Expanded(
                                               child: Text(
-                                                chat.unreadCount > 9
-                                                    ? '9+'
-                                                    : chat.unreadCount
-                                                          .toString(),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                                chat.destino?.mensaje ?? '',
+                                                style: TextStyle(
+                                                  fontSize: responsive
+                                                      .heightPercent(1.4),
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            /* if (chat.unreadCount > 0) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).primaryColor,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  chat.unreadCount > 9
+                                                      ? '9+'
+                                                      : chat.unreadCount
+                                                            .toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ], */
-                                        ],
-                                      ),
-                                    ],
+                                            ], */
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                   CustomFloatingButton(

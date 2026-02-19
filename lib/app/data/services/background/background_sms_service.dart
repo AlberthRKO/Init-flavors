@@ -100,7 +100,8 @@ class BackgroundSmsService {
           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZnoyYldMY1Q4NGZUQm9aU0ZkbkVJSFVqUW03eWRDZFR1dDk4K3Vkd0p4OXRTY1dFZEY4VGExajQ0c0g3RWxyYWFrdWtHYnRFVzJIeUt4cEk5NnJ6QVpHZDVVYU8vRU9HdjlUVXB5VEFKTTc3S3dXMkdQUHVVN0lNbm53K1VCK3YxdDJ0aFYrWU5RTUtsVU1OR2ZuWnUvUEpJdlpOMFBLbCttc0FZMThuUks2TFlRUHpGTjUxVEk4L1JhRndZOWdnckZtWExZZWZSeTk3TXpBQStwekE4VkYwU0szamd0ZGpKUFRNTFl3ZGUrQXEyNW5EL0hSaXZqSHNLaGFvbjZmZG5FcnRIdisvQ21CQXR6TGRPS2RCZmUrMm5UWnpBbjhXMStvWEt5YTEwN3ZvKzFNZjI5ZElvV2dzSlF1bDcxOXRDdnoyN0hCUzQxOCt2TW9jcEZ2bmx6S3A5Y05JdkExdEdIMVlxdXlKOTJlQlJqZ1MvMGIyanc2a0k2dGo2Q3UwaUpCNU5uUVgvNnVpc3QyemZ5dGdRT2crYmZlTDY0VW5ZTFRITlNDQitRbFhsTVY3bWNNYzVHT2RKSGIwbUFaeElxSTdKdkxtck1lZkpGRDVkRk5CczlCRFNucnBrMndIT0ZCdlRjY1MxTFNhV09TWjdNM3ljdHQ0WFl0UDFHWGZqbzZNeXJpVGFMbzhNbGhUOW14T1BDM0JMQ1MxR2FzbHVySGRNbWp6Z3c3WE9QWmlFWG9GdG5VWWVmSWI1eTV5QWlpNnZLODYzSFVqRDh6RlQ5cVVGaEhpUC94OUwyaW8wZ0tXRHY4RHJVQmRaTkw2Ritma3ZnckVoTGxLQzFwc2tvbHd3MEYzdHltM0hSdFRlK1pVUT09IiwiaXYiOiIwaXN6WGVKM0p6K0xlczhQY0VKbGFBPT0iLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcwMDQ1OTIyLCJleHAiOjE3NzAxMzIzMjJ9.CeoJ_LnbW0UdstmaAO1U6Z3HTgNCGIMByRUzWpKy5BQ';
 
       //const url = 'https://r05290mh-3515.brs.devtunnels.ms';
-      const url = 'ws://ms-sms-v2.mp.gob.bo';
+      //const url = 'ws://ms-sms-v2.mp.gob.bo';
+      const url = 'ws://172.27.38.56:3515';
 
       _socket = IO.io(
         url,
@@ -123,7 +124,7 @@ class BackgroundSmsService {
       // Escuchar NUEVOS mensajes (cuando se crea)
       _socket!.on('send-message', (data) async {
         print('📨 Nuevo mensaje: $data');
-        //await _handleIncomingMessage(data);
+        await _handleIncomingMessage(data);
       });
 
       // Escuchar ACTUALIZACIONES de estado
@@ -170,20 +171,15 @@ class BackgroundSmsService {
       final dataMap = data as Map<String, dynamic>;
       final message = MessageModel.fromJson(dataMap);
 
-      // Obtener el CI del sender y el mensaje
-      final senderCI = message.user?.ci;
-      final messageText = message.message;
+      // Obtener el CI del usuario desde origen.usuario.ci
+      final senderCI = message.origen?.usuario?.ci;
 
-      // Validar CI (convertir a String si es necesario)
-      if (senderCI == null) {
+      // Obtener el texto del mensaje desde destino.mensaje
+      final messageText = message.destino?.mensaje;
+
+      // Validar CI
+      if (senderCI == null || senderCI.isEmpty) {
         print('⚠️ Mensaje sin CI del remitente');
-        return;
-      }
-
-      // Convertir CI a String (puede venir como int o String del JSON)
-      final ciString = senderCI;
-      if (ciString.isEmpty) {
-        print('⚠️ CI del remitente vacío');
         return;
       }
 
@@ -192,20 +188,24 @@ class BackgroundSmsService {
         return;
       }
 
-      // Número de teléfono del mensaje
-      final phoneNumber = message.phone;
+      // Número de teléfono del mensaje desde destino.numero
+      final phoneNumber = message.destino?.numero;
 
       if (phoneNumber == null || phoneNumber.isEmpty) {
         print('⚠️ Mensaje sin número de teléfono');
         return;
       }
 
+      // Tipo de mensaje desde destino.tipo
+      final messageType = message.destino?.tipo ?? 'SMS';
+
       print('📱 Preparando envío de SMS...');
-      print('   Message ID: ${message.messageId}');
-      print('   Destinatario CI: $ciString');
+      print('   Message ID: ${message.id}');
+      print('   Destinatario CI: $senderCI');
       print('   Número: $phoneNumber');
       print('   Mensaje: $messageText');
-      print('   Tipo: ${message.messageType}');
+      print('   Tipo: $messageType');
+      print('   Estado: ${message.estado}');
       print('   SIM slot: $_simSlot');
 
       // Notificar al UI que llegó un nuevo mensaje (para actualizar la lista)
@@ -216,12 +216,12 @@ class BackgroundSmsService {
       // Notificar al UI principal para que envíe el SMS
       // Ya que no podemos enviar SMS directamente desde background
       service.invoke('sendSmsRequest', {
-        'messageId': message.messageId,
+        'messageId': message.id,
         'phoneNumber': phoneNumber,
         'message': messageText,
-        'messageType': message.messageType,
+        'messageType': messageType,
         'simSlot': _simSlot,
-        'ci': ciString,
+        'ci': senderCI,
       });
 
       print('✅ Solicitud de SMS enviada a primer plano');
@@ -285,25 +285,23 @@ class BackgroundSmsService {
       print('🔄 Procesando actualización de estado...');
 
       final dataMap = data as Map<String, dynamic>;
-      final messageId = dataMap['messageId'] as String?;
-      final status = dataMap['status'] as int?;
-      final chatId = dataMap['chatId'] as String?;
+      // El backend envía el objeto completo con _id y estado
+      final messageId = dataMap['_id'] as String?;
+      final estado = dataMap['estado'] as String?;
 
-      if (messageId == null || status == null) {
-        print('⚠️ Actualización de estado sin messageId o status');
+      if (messageId == null || estado == null) {
+        print('⚠️ Actualización de estado sin _id o estado');
         return;
       }
 
       print('📱 Estado actualizado:');
       print('   Message ID: $messageId');
-      print('   Nuevo estado: $status');
-      print('   Chat ID: $chatId');
+      print('   Nuevo estado: $estado');
 
       // Notificar al UI del cambio de estado
       service.invoke('messageStatusUpdate', {
         'messageId': messageId,
-        'status': status,
-        'chatId': chatId,
+        'estado': estado,
         'timestamp': DateTime.now().toIso8601String(),
       });
 

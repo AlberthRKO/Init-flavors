@@ -187,8 +187,8 @@ class BackgroundServiceHelper {
                 'Mensaje: $message',
               );
 
-              // Actualizar estado del mensaje a enviado (status = 1)
-              await _updateMessageStatus(messageId, 1);
+              // Actualizar estado del mensaje a enviado (status = "1")
+              await _updateMessageStatus(messageId, 'Enviado');
 
               // Notificar éxito con los datos del mensaje
               _service.invoke('smsSentSuccess', {
@@ -204,8 +204,8 @@ class BackgroundServiceHelper {
                 'No se pudo enviar a $phoneNumber',
               );
 
-              // Actualizar estado del mensaje a fallido (status = 2)
-              await _updateMessageStatus(messageId, 2);
+              // Actualizar estado del mensaje a fallido (status = "2")
+              await _updateMessageStatus(messageId, 'Fallido');
 
               // Notificar fallo
               _service.invoke('smsSentFailed', {
@@ -221,9 +221,9 @@ class BackgroundServiceHelper {
               'Error: $e',
             );
 
-            // Actualizar estado del mensaje a fallido (status = 2)
+            // Actualizar estado del mensaje a fallido (status = "Fallido")
             if (messageId != null) {
-              await _updateMessageStatus(messageId, 2);
+              await _updateMessageStatus(messageId, 'Fallido');
             }
           }
         }
@@ -250,7 +250,7 @@ class BackgroundServiceHelper {
   }
 
   /// Actualiza el estado del mensaje en el servidor
-  Future<void> _updateMessageStatus(String messageId, int status) async {
+  Future<void> _updateMessageStatus(String messageId, String status) async {
     if (_repository == null) {
       print('⚠️ Repository no configurado, no se puede actualizar estado');
       return;

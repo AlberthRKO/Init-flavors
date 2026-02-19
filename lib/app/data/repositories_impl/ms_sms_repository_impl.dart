@@ -24,11 +24,11 @@ class MsSmsRepositoryImpl extends MsSmsRepository {
   @override
   Future<Either<ErrorModel, void>> setChangeStateMsj(
     String messageId,
-    int status,
+    String estado,
   ) async {
     return _msSmsAPI.setChangeStateMsj(
       messageId: messageId,
-      status: status,
+      estado: estado,
     );
   }
 }

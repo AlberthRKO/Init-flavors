@@ -31,7 +31,8 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     log(details.exceptionAsString(), stackTrace: details.stack);
   };
   final httpServices = Http(
-    baseUrl: 'https://ms-sms-v2.mp.gob.bo',
+    //baseUrl: 'https://ms-sms-v2.mp.gob.bo',
+    baseUrl: 'http://172.27.38.56:3515',
     //baseUrl: 'https://r05290mh-3515.brs.devtunnels.ms',
     userAgent: 'userAgent',
     ip: 'ipServer',

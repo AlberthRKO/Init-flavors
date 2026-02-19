@@ -10,6 +10,6 @@ abstract class MsSmsRepository {
   );
   Future<Either<ErrorModel, void>> setChangeStateMsj(
     String messageId,
-    int status,
+    String estado,
   );
 }

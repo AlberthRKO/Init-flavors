@@ -19,7 +19,7 @@ class MsSmsAPI {
     required int size,
     String? search,
   }) async {
-    final query = '?page=$page&size=$size';
+    final query = '?page=$page&limit=$size';
     final result = await _http.request(
       '/v1/sms/messages$query',
       onSucces: (responseBody) {
@@ -40,14 +40,14 @@ class MsSmsAPI {
   // cambiamos de user a void por el momento
   Future<Either<ErrorModel, void>> setChangeStateMsj({
     required String messageId,
-    required int status,
+    required String estado,
   }) async {
     final result = await _http.request(
       '/v1/sms/send-message/status',
       method: HttpMethod.post,
       body: {
         'messageId': messageId,
-        'status': status,
+        'estado': estado,
       },
       onSucces: (responseBody) {},
     );
