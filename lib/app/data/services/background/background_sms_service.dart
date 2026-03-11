@@ -177,12 +177,6 @@ class BackgroundSmsService {
       // Obtener el texto del mensaje desde destino.mensaje
       final messageText = message.destino?.mensaje;
 
-      // Validar CI
-      if (senderCI == null || senderCI.isEmpty) {
-        print('⚠️ Mensaje sin CI del remitente');
-        return;
-      }
-
       if (messageText == null || messageText.isEmpty) {
         print('⚠️ Mensaje sin texto');
         return;
@@ -201,7 +195,6 @@ class BackgroundSmsService {
 
       print('📱 Preparando envío de SMS...');
       print('   Message ID: ${message.id}');
-      print('   Destinatario CI: $senderCI');
       print('   Número: $phoneNumber');
       print('   Mensaje: $messageText');
       print('   Tipo: $messageType');

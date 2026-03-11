@@ -199,7 +199,7 @@ class BackgroundServiceHelper {
               );
 
               // Actualizar estado del mensaje a enviado (status = "1")
-              await _updateMessageStatus(messageId, 'Enviado');
+              await _updateMessageStatus(messageId, 'enviado');
 
               // Notificar éxito con los datos del mensaje
               _service.invoke('smsSentSuccess', {
@@ -216,7 +216,7 @@ class BackgroundServiceHelper {
               );
 
               // Actualizar estado del mensaje a fallido (status = "2")
-              await _updateMessageStatus(messageId, 'Fallido');
+              await _updateMessageStatus(messageId, 'fallido');
 
               // Notificar fallo
               _service.invoke('smsSentFailed', {

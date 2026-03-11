@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
                 if (index != -1) {
                   listMensajes[index] = listMensajes[index].copyWith(
-                    estado: 'Enviado',
+                    estado: 'enviado',
                   );
                   print('✅ Mensaje marcado como enviado en UI');
                 }
@@ -238,7 +238,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
                 if (index != -1) {
                   listMensajes[index] = listMensajes[index].copyWith(
-                    estado: 'Fallido',
+                    estado: 'fallido',
                   );
                   print('❌ Mensaje marcado como fallido en UI');
                 }
@@ -287,18 +287,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 print('✅ Estado del mensaje actualizado en UI');
 
                 // Mostrar un SnackBar indicando el cambio de estado
-                final statusText = estado == 'Enviado'
+                final statusText = estado == 'enviado'
                     ? 'enviado exitosamente'
-                    : estado == 'Fallido'
+                    : estado == 'fallido'
                     ? 'falló al enviar'
                     : 'pendiente';
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Mensaje $statusText'),
                     duration: const Duration(seconds: 2),
-                    backgroundColor: estado == 'Enviado'
+                    backgroundColor: estado == 'enviado'
                         ? Colors.green
-                        : estado == 'Fallido'
+                        : estado == 'fallido'
                         ? Colors.red
                         : Colors.orange,
                   ),
@@ -1276,7 +1276,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Center(
-                                      child: chat.estado == 'Pendiente'
+                                      child: chat.estado == 'pendiente'
                                           ? SvgPicture.asset(
                                               'assets/images/icons/estado.svg',
                                               width: responsive.heightPercent(
@@ -1284,7 +1284,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               ),
                                               color: Colors.white,
                                             )
-                                          : chat.estado == 'Enviado'
+                                          : chat.estado == 'enviado'
                                           ? SvgPicture.asset(
                                               'assets/images/icons/check.svg',
                                               width: responsive.heightPercent(
@@ -1292,7 +1292,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               ),
                                               color: Colors.white,
                                             )
-                                          : chat.estado == 'Fallido'
+                                          : chat.estado == 'fallido'
                                           ? SvgPicture.asset(
                                               'assets/images/icons/close.svg',
                                               width: responsive.heightPercent(
