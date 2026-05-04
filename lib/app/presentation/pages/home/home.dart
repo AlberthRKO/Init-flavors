@@ -2,6 +2,7 @@
 
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -64,6 +65,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String _operadoraSeleccionada = '';
   bool _isWaitingForAccessibility = false;
   bool _hasRequestedPhonePermission = false;
+  bool _hasCheckedBatteryOptimization = false;
+  bool _isWaitingForBatteryOptimization = false;
   List<Map<String, dynamic>> _availableSimCards = [];
 
   // Servicio de background (siempre activo)
@@ -434,6 +437,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     await _requestPhonePermissionOnce();
     // Luego mostrar el modal con los SIMs ya detectados
     await _checkAndShowOperadoraModal();
+    // Verificar optimizacion de bateria en Android
+    await _checkBatteryOptimization();
   }
 
   @override
@@ -462,6 +467,60 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         }
       });
     }
+
+    if (state == AppLifecycleState.resumed &&
+        _isWaitingForBatteryOptimization) {
+      _isWaitingForBatteryOptimization = false;
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          _checkBatteryOptimization();
+        }
+      });
+    }
+  }
+
+  Future<void> _checkBatteryOptimization() async {
+    if (!Platform.isAndroid) return;
+
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    if (status.isGranted) return;
+    if (_hasCheckedBatteryOptimization) return;
+
+    _hasCheckedBatteryOptimization = true;
+    if (mounted) {
+      await _showBatteryOptimizationModal();
+    }
+  }
+
+  Future<void> _requestIgnoreBatteryOptimizations() async {
+    if (!Platform.isAndroid) return;
+
+    final status = await Permission.ignoreBatteryOptimizations.request();
+    if (!status.isGranted) {
+      _hasCheckedBatteryOptimization = false;
+      _isWaitingForBatteryOptimization = true;
+      await openAppSettings();
+    }
+  }
+
+  Future<void> _showBatteryOptimizationModal() async {
+    if (!mounted) return;
+
+    await showMaterialModalBottomSheet(
+      isDismissible: false,
+      enableDrag: false,
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return ModalError(
+          error:
+              'Para mantener el socket activo en pantalla bloqueada, cambia la bateria a "Sin restricciones".',
+          funcion: _requestIgnoreBatteryOptimizations,
+          isAction: true,
+          titleAction: 'Abrir configuracion',
+        );
+      },
+    );
   }
 
   Future<void> _requestPhonePermissionOnce() async {
